@@ -35,3 +35,4 @@ This onboarding deployment uses server-side Supabase credentials from `.env.exam
 ## Operator handoff
 
 Read [`docs/NEW_CLIENT_SETUP.md`](./docs/NEW_CLIENT_SETUP.md) after each submission. It explains the remaining steps for WhatsApp, payment, email, multi-tenant rollout, and live QA.
+ 
