@@ -1,0 +1,603 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #f5efe4;
+  --ink: #132833;
+  --muted: #5b6a71;
+  --line: rgba(19, 40, 51, 0.14);
+  --surface: rgba(255, 250, 242, 0.9);
+  --accent: #185f75;
+  --accent-dark: #0d4356;
+  --accent-soft: rgba(24, 95, 117, 0.1);
+  --warm: #ca6c2f;
+  --warm-soft: rgba(202, 108, 47, 0.12);
+  --danger: #a63f2b;
+  --shadow: 0 24px 60px rgba(19, 40, 51, 0.08);
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(202, 108, 47, 0.18), transparent 36%),
+    radial-gradient(circle at top right, rgba(24, 95, 117, 0.16), transparent 28%),
+    linear-gradient(180deg, #fff8ef 0%, var(--bg) 100%);
+  color: var(--ink);
+  font-family: var(--font-sans), sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  padding: 0.9rem 1rem;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+input:focus,
+textarea:focus {
+  border-color: rgba(24, 95, 117, 0.55);
+  box-shadow: 0 0 0 4px rgba(24, 95, 117, 0.12);
+}
+
+textarea {
+  resize: vertical;
+}
+
+label {
+  display: grid;
+  gap: 0.55rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.shell {
+  width: min(1240px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.hero-panel,
+.presentation-panel,
+.guide-panel,
+.form-card,
+.summary-card,
+.guide-card,
+.success-panel {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+}
+
+.hero-copy h1,
+.section-header h2,
+.guide-card h3,
+.tour-card-header h3 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.hero-copy h1 {
+  font-size: clamp(2.8rem, 5vw, 5.3rem);
+  max-width: 13ch;
+}
+
+.lede {
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 1.04rem;
+  line-height: 1.65;
+}
+
+.eyebrow {
+  margin: 0 0 0.65rem;
+  color: var(--warm);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.hero-metrics,
+.success-grid,
+.plan-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1.5rem;
+}
+
+.metric-card,
+.success-card {
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(19, 40, 51, 0.08);
+}
+
+.metric-value,
+.summary-progress strong,
+.success-card strong,
+.cost-preview strong {
+  display: block;
+  font-size: 1.1rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.metric-label,
+.summary-label,
+.success-card span,
+.cost-preview span,
+.tour-index {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.summary-card {
+  border-radius: var(--radius-xl);
+  padding: 1.35rem;
+}
+
+.summary-progress {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin-top: 0.6rem;
+}
+
+.summary-list,
+.guide-card ul {
+  margin: 1rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.summary-note {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--warm-soft);
+  color: var(--ink);
+  font-size: 0.93rem;
+}
+
+.guide-panel,
+.presentation-panel,
+.success-panel {
+  margin-top: 1.4rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+}
+
+.section-header {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+
+.section-header.compact h2 {
+  font-size: 1.65rem;
+}
+
+.guide-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.presentation-intro {
+  max-width: 70ch;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.presentation-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.guide-tab,
+.presentation-tab,
+.plan-option,
+.day-toggle,
+.ghost-button,
+.primary-button {
+  border: 0;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, color 180ms ease, opacity 180ms ease;
+}
+
+.guide-tab {
+  padding: 0.9rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(19, 40, 51, 0.06);
+  color: var(--ink);
+}
+
+.guide-tab.active,
+.presentation-tab.active {
+  background: var(--accent);
+  color: white;
+}
+
+.presentation-tab {
+  padding: 0.9rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(19, 40, 51, 0.06);
+  color: var(--ink);
+}
+
+.presentation-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.presentation-copy,
+.presentation-screen-frame,
+.screenshot-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(19, 40, 51, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.presentation-copy {
+  padding: 1.35rem;
+}
+
+.presentation-copy h3,
+.presentation-block h4 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+}
+
+.presentation-copy h3 {
+  font-size: clamp(1.8rem, 2.6vw, 2.7rem);
+  line-height: 1.05;
+}
+
+.presentation-copy > p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.presentation-block {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(19, 40, 51, 0.14);
+}
+
+.presentation-block h4 {
+  font-size: 1.15rem;
+}
+
+.presentation-block ul,
+.presentation-block ol {
+  margin: 0.8rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.presentation-screen {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.presentation-screen-frame {
+  padding: 0.8rem;
+}
+
+.presentation-screen-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+}
+
+.presentation-caption {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.screenshot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.screenshot-card {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  text-align: left;
+}
+
+.screenshot-card.active {
+  border-color: rgba(24, 95, 117, 0.32);
+  box-shadow: 0 18px 32px rgba(24, 95, 117, 0.08);
+}
+
+.screenshot-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+.screenshot-card strong,
+.screenshot-card span {
+  display: block;
+}
+
+.screenshot-card strong {
+  color: var(--ink);
+}
+
+.screenshot-card span {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.guide-card {
+  margin-top: 1rem;
+  border-radius: var(--radius-lg);
+  padding: 1.35rem;
+}
+
+.guide-card p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.onboarding-form {
+  margin-top: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.form-card {
+  border-radius: var(--radius-lg);
+  padding: 1.4rem;
+}
+
+.form-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.field-grid,
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.field-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.full-span {
+  grid-column: 1 / -1;
+}
+
+.tour-card,
+.faq-card {
+  border-radius: 20px;
+  border: 1px solid rgba(19, 40, 51, 0.1);
+  background: rgba(255, 255, 255, 0.76);
+  padding: 1rem;
+}
+
+.tour-card-header,
+.subsection-header,
+.time-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.subsection {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(19, 40, 51, 0.14);
+}
+
+.subsection-header span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.day-toggle-row,
+.time-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.day-toggle {
+  padding: 0.7rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(19, 40, 51, 0.06);
+  color: var(--ink);
+}
+
+.day-toggle.active {
+  background: var(--warm);
+  color: white;
+}
+
+.ghost-button {
+  padding: 0.7rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(19, 40, 51, 0.06);
+  color: var(--ink);
+}
+
+.primary-button {
+  padding: 0.95rem 1.25rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+}
+
+.primary-button.secondary {
+  margin-top: 1rem;
+  background: rgba(24, 95, 117, 0.12);
+  color: var(--accent-dark);
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 100%;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--ink);
+}
+
+.checkbox-field input {
+  width: auto;
+  padding: 0;
+  margin: 0;
+}
+
+.plan-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.plan-option {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border-radius: 20px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--ink);
+  border: 1px solid rgba(19, 40, 51, 0.08);
+}
+
+.plan-option.active {
+  background: var(--accent-dark);
+  color: white;
+}
+
+.plan-option small {
+  color: inherit;
+  opacity: 0.82;
+}
+
+.cost-preview,
+.submit-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: var(--accent-soft);
+}
+
+.submit-box p,
+.error-text {
+  color: var(--muted);
+}
+
+.error-text {
+  margin-top: 0.75rem;
+  color: var(--danger);
+}
+
+.success-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+@media (max-width: 980px) {
+  .hero-panel,
+  .form-grid,
+  .plan-grid,
+  .hero-metrics,
+  .presentation-stage,
+  .screenshot-grid,
+  .success-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: min(100% - 1rem, 1240px);
+    padding: 1rem 0 3rem;
+  }
+
+  .hero-copy h1 {
+    font-size: 2.6rem;
+  }
+
+  .guide-tab,
+  .ghost-button,
+  .primary-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
