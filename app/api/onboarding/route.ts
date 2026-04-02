@@ -219,6 +219,16 @@ function buildCookiesPolicy(payload: OnboardingPayload) {
   ].join("\n\n");
 }
 
+function buildFaqJson(payload: OnboardingPayload): Record<string, string> {
+  const faqObj: Record<string, string> = {};
+  for (const faq of (payload.faqs || [])) {
+    const q = faq.question?.trim();
+    const a = faq.answer?.trim();
+    if (q && a) faqObj[q] = a;
+  }
+  return faqObj;
+}
+
 function buildKnowledgeBase(payload: OnboardingPayload) {
   const faqText = payload.faqs
     .filter((faq) => faq.question.trim() && faq.answer.trim())
@@ -497,6 +507,15 @@ export async function POST(request: Request) {
     hero_eyebrow: payload.branding.heroEyebrow.trim() || null,
     hero_title: payload.branding.heroTitle.trim(),
     hero_subtitle: payload.branding.heroSubtitle.trim() || null,
+    // ── Fields that power the chatbot + booking page ──
+    what_to_bring: payload.operations.whatToBring?.trim() || null,
+    what_to_wear: payload.operations.whatToWear?.trim() || null,
+    ai_system_prompt: payload.automation?.aiPersona?.trim() || null,
+    faq_json: buildFaqJson(payload),
+    subdomain: payload.business.tenantSlug?.trim()?.toLowerCase()?.replace(/[^a-z0-9-]/g, "") || null,
+    booking_site_url: payload.business.tenantSlug
+      ? `https://${payload.business.tenantSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "")}.bookingtours.co.za`
+      : null,
   };
 
   const { data: businessRow, error: businessError } = await supabase
