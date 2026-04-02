@@ -13,9 +13,9 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "ActivityHub Onboarding",
+  title: "BookingTours — Set Up Your Adventure Business",
   description:
-    "Client-facing onboarding flow that seeds a new business into the ActivityHub Supabase stack.",
+    "The complete booking platform for adventure and tourism businesses. Set up your booking website, AI assistant, and admin dashboard in minutes.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
