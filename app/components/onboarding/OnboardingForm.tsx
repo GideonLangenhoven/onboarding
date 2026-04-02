@@ -913,130 +913,63 @@ export function OnboardingForm({
           </button>
         </section>
 
-        {/* 9. Billing */}
+        {/* 9. Landing Page & Integration */}
         <section className="form-card">
           <div className="section-header compact">
-            <p className="eyebrow">9. Commercial setup</p>
-            <h2>Landing page package</h2>
+            <p className="eyebrow">9. Landing Page & Integration</p>
+            <h2>Your website and payment setup</h2>
           </div>
-          <div className="field-grid">
-            <label>
-              Pages requested
-              <input
-                value={form.billing.pagesRequested}
-                onChange={(e) => updateSection("billing", "pagesRequested", e.target.value)}
-                placeholder="5"
-              />
-            </label>
+          <div className="stack">
             <label className="checkbox-field">
               <input
                 type="checkbox"
                 checked={form.billing.landingPageRequested}
                 onChange={(e) => updateSection("billing", "landingPageRequested", e.target.checked)}
               />
-              Create landing page order in SQL
+              I&apos;d like a professional landing page for my business
             </label>
-            <label className="checkbox-field">
-              <input
-                type="checkbox"
-                checked={form.billing.hostingActive}
-                onChange={(e) => updateSection("billing", "hostingActive", e.target.checked)}
-              />
-              Keep monthly hosting active
-            </label>
-            <label className="checkbox-field">
-              <input
-                type="checkbox"
-                checked={form.billing.whatsappKeysProvidedLater}
-                onChange={(e) => updateSection("billing", "whatsappKeysProvidedLater", e.target.checked)}
-              />
-              WhatsApp keys will be provided by you later
-            </label>
-            <label className="checkbox-field">
-              <input
-                type="checkbox"
-                checked={form.billing.yocoKeyProvidedLater}
-                onChange={(e) => updateSection("billing", "yocoKeyProvidedLater", e.target.checked)}
-              />
-              Yoco key will be configured later
-            </label>
+            {form.billing.landingPageRequested && (
+              <p style={{ fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.6, padding: "0 0.5rem" }}>
+                We&apos;ll create a polished landing page using your branding, tours, and content from this form. You can choose from 4 premium templates. Your BookingTours team will set it up and connect it to your custom domain.
+              </p>
+            )}
+          </div>
+
+          <div className="field-grid" style={{ marginTop: "1.25rem" }}>
             <label className="full-span">
-              WA_ACCESS_TOKEN
+              WhatsApp Access Token
               <input
                 type="password"
                 value={form.secrets.waAccessToken}
                 onChange={(e) => updateSection("secrets", "waAccessToken", e.target.value)}
-                placeholder="Optional: captured into protected metadata only"
+                placeholder="Don't have this yet? No problem — we'll help you set it up"
               />
             </label>
             <label className="full-span">
-              YOCO_SECRET_KEY
+              Yoco Secret Key
               <input
                 type="password"
                 value={form.secrets.yocoSecretKey}
                 onChange={(e) => updateSection("secrets", "yocoSecretKey", e.target.value)}
-                placeholder="Optional: captured into protected metadata only"
+                placeholder="Don't have this yet? No problem — we'll help you set it up"
               />
             </label>
           </div>
-          <div className="cost-preview">
-            <span>Estimated build fee</span>
-            <strong>R{landingBuildPrice.toLocaleString("en-ZA")}</strong>
-          </div>
+          <p style={{ marginTop: "1rem", fontSize: "0.82rem", color: "var(--muted)", lineHeight: 1.6 }}>
+            Don&apos;t worry if you don&apos;t have these yet — your BookingTours team will walk you through connecting WhatsApp and payments after setup.
+          </p>
         </section>
 
-        {/* 10. Notes */}
-        <section className="form-card">
-          <div className="section-header compact">
-            <p className="eyebrow">10. Operator notes</p>
-            <h2>Anything not covered above</h2>
-          </div>
-          <label className="full-span">
-            Internal notes
-            <textarea
-              value={form.notes}
-              onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))}
-              rows={7}
-              placeholder="Special launch notes, exceptions, or follow-up requests."
-            />
-          </label>
+        {/* Submit */}
+        <section className="form-card" style={{ textAlign: "center" }}>
           <div className="submit-box">
             <p>
-              On submit, the app creates the tenant data in Supabase and returns the IDs you need for the launch handoff.
-            </p>
-            <p>
-              The fallback SQL below is generated locally from the same form data, so you still have a manual path if the automated provisioning endpoint is unavailable.
+              When you click the button below, we&apos;ll create your booking website, admin dashboard, and AI assistant automatically. You&apos;ll receive login details by email.
             </p>
             <button type="submit" className="primary-button" disabled={submitting}>
-              {submitting ? "Preparing your business..." : "Complete Setup & Launch"}
+              {submitting ? "Setting up your business..." : "Launch My Business →"}
             </button>
             {submitError ? <p className="error-text">{submitError}</p> : null}
-            {submitError ? (
-              <div className="guide-card">
-                <h3>Manual fallback available</h3>
-                <p>
-                  Automated provisioning failed, but the SQL fallback is ready. Review it, then run it manually if needed.
-                </p>
-                <div className="stack">
-                  <button
-                    type="button"
-                    className="primary-button secondary"
-                    onClick={() =>
-                      downloadSql(
-                        `${slugify(form.business.tenantSlug || form.business.businessName)}-onboarding-fallback.sql`,
-                        migrationSql,
-                      )
-                    }
-                  >
-                    Download migration SQL
-                  </button>
-                  <label className="full-span">
-                    SQL preview
-                    <textarea value={migrationSql} readOnly rows={14} />
-                  </label>
-                </div>
-              </div>
-            ) : null}
           </div>
         </section>
       </div>
