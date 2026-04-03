@@ -115,7 +115,7 @@ function buildProtectedSecret(label: string, value: string) {
 
 function buildLandingPageMetadata(form: FormState) {
   return {
-    source: "activityhub-onboarding",
+    source: "bookingtours-onboarding",
     tenant_slug: slugify(form.business.tenantSlug || form.business.businessName),
     business_profile: form.business,
     operations: form.operations,

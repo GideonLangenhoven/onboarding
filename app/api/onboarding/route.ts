@@ -274,7 +274,7 @@ function buildKnowledgeBase(payload: OnboardingPayload) {
 
 function buildLandingPageMetadata(payload: OnboardingPayload, businessId: string) {
   return {
-    source: "activityhub-onboarding",
+    source: "bookingtours-onboarding",
     created_for_business_id: businessId,
     tenant_slug: normalizeSlug(payload.business.tenantSlug || payload.business.businessName),
     business_profile: payload.business,
@@ -510,7 +510,7 @@ export async function POST(request: Request) {
     // ── Fields that power the chatbot + booking page ──
     what_to_bring: payload.operations.whatToBring?.trim() || null,
     what_to_wear: payload.operations.whatToWear?.trim() || null,
-    ai_system_prompt: payload.automation?.aiPersona?.trim() || null,
+    ai_system_prompt: payload.automations?.aiPersona?.trim() || null,
     faq_json: buildFaqJson(payload),
     subdomain: payload.business.tenantSlug?.trim()?.toLowerCase()?.replace(/[^a-z0-9-]/g, "") || null,
     booking_site_url: payload.business.tenantSlug
@@ -727,7 +727,7 @@ export async function POST(request: Request) {
             `<p><strong>Tours:</strong> ${toursCreated} configured, ${slotsCreated} slots generated</p>`,
             `<p><strong>Subdomain:</strong> ${normalizeSlug(payload.business.tenantSlug || payload.business.businessName)}.bookingtours.co.za</p>`,
             `<p><strong>Landing page requested:</strong> ${payload.billing?.landingPageRequested ? "Yes" : "No"}</p>`,
-            `<br><p>Review in <a href="https://admin-tawny-delta-92.vercel.app/super-admin">Super Admin Dashboard</a></p>`,
+            `<br><p>Review in <a href="${process.env.ADMIN_DASHBOARD_URL || "https://admin-tawny-delta-92.vercel.app"}/super-admin">Super Admin Dashboard</a></p>`,
           ].join(""),
         }),
       });

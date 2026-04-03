@@ -11,7 +11,7 @@ export function HeroPanel({ form }: { form: FormState }) {
   return (
     <section className="hero-panel">
       <div className="hero-copy">
-        <p className="eyebrow">ActivityHub onboarding</p>
+        <p className="eyebrow">BookingTours onboarding</p>
         <h1>Set up your adventure centre in minutes.</h1>
         <p className="lede">
           Welcome! This isn't just a sign-up form—it's the first step in building your modern digital business.
