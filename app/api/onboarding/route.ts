@@ -732,8 +732,48 @@ export async function POST(request: Request) {
         }),
       });
     }
+    // ── Welcome email to the business owner ──
+    if (RESEND_KEY) {
+      const slug = normalizeSlug(payload.business.tenantSlug || payload.business.businessName);
+      const adminUrl = process.env.ADMIN_DASHBOARD_URL || "https://admin-tawny-delta-92.vercel.app";
+      const bookingUrl = `https://${slug}.bookingtours.co.za`;
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: "BookingTours <info@bookingtours.co.za>",
+          to: [payload.business.ownerEmail.trim().toLowerCase()],
+          subject: `Welcome to BookingTours — ${payload.business.businessName.trim()} is live!`,
+          html: [
+            `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:2rem">`,
+            `<h1 style="color:#1a3c34;font-size:28px;margin-bottom:8px">Welcome to BookingTours!</h1>`,
+            `<p style="color:#666;font-size:16px;line-height:1.6">Hi ${payload.business.ownerName.trim().split(" ")[0]},</p>`,
+            `<p style="color:#666;font-size:16px;line-height:1.6">Your business <strong>${payload.business.businessName.trim()}</strong> has been set up and is ready to accept bookings. Here's everything you need to get started:</p>`,
+            `<div style="background:#f0f7f4;border-radius:12px;padding:20px;margin:20px 0">`,
+            `<p style="margin:0 0 12px"><strong>🔑 Admin Dashboard:</strong><br><a href="${adminUrl}" style="color:#2d6a4f">${adminUrl}</a></p>`,
+            `<p style="margin:0 0 12px"><strong>🌐 Your Booking Page:</strong><br><a href="${bookingUrl}" style="color:#2d6a4f">${bookingUrl}</a></p>`,
+            `<p style="margin:0 0 12px"><strong>📧 Login Email:</strong> ${payload.business.ownerEmail.trim()}</p>`,
+            `<p style="margin:0"><strong>🔒 Password:</strong> The one you chose during setup</p>`,
+            `</div>`,
+            `<h2 style="color:#1a3c34;font-size:20px;margin-top:24px">Your Next Steps</h2>`,
+            `<ol style="color:#666;font-size:15px;line-height:1.8;padding-left:20px">`,
+            `<li>Log in to your <a href="${adminUrl}" style="color:#2d6a4f">admin dashboard</a></li>`,
+            `<li>Check your tours and pricing in <strong>Settings → Tours</strong></li>`,
+            `<li>Connect Yoco payments in <strong>Settings → Credentials</strong></li>`,
+            `<li>Share your <a href="${bookingUrl}" style="color:#2d6a4f">booking link</a> with customers</li>`,
+            `<li>Make a test booking to see the full experience</li>`,
+            `</ol>`,
+            `<p style="color:#666;font-size:15px;line-height:1.6;margin-top:20px">Need help? Reply to this email or WhatsApp us — we're here for you.</p>`,
+            `<div style="border-top:1px solid #e5e7eb;margin-top:24px;padding-top:16px;color:#999;font-size:13px">`,
+            `<p>BookingTours — Built for adventure businesses</p>`,
+            `</div>`,
+            `</div>`,
+          ].join(""),
+        }),
+      });
+    }
   } catch (notifyErr) {
-    console.error("ADMIN_NOTIFY_ERR (non-blocking):", notifyErr);
+    console.error("NOTIFY_ERR (non-blocking):", notifyErr);
   }
 
   return NextResponse.json({

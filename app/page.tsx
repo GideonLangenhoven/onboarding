@@ -181,6 +181,43 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══ Pricing ═══ */}
+      <section className="bt-section">
+        <div className="shell">
+          <div className="bt-section-header">
+            <h2>Simple, transparent pricing</h2>
+            <p>Everything you need to run your adventure business. No hidden fees.</p>
+          </div>
+          <div style={{ maxWidth: 600, margin: "0 auto" }}>
+            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--line)", padding: "2.5rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" as const, color: "var(--green-mid)", marginBottom: "0.5rem" }}>All-in-one plan</div>
+              <div style={{ fontSize: "3rem", fontWeight: 800, color: "var(--green)", lineHeight: 1 }}>R1,500<span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--muted)" }}>/month</span></div>
+              <p style={{ color: "var(--muted)", fontSize: "0.95rem", marginTop: "0.5rem" }}>+ R750 per additional admin user</p>
+              <div style={{ textAlign: "left", margin: "1.5rem 0", padding: "1.25rem", background: "var(--green-light)", borderRadius: 12 }}>
+                <div style={{ display: "grid", gap: "0.6rem", fontSize: "0.9rem", color: "var(--ink)" }}>
+                  {["Professional booking website with your branding",
+                    "Admin dashboard with unlimited bookings",
+                    "AI chatbot on website + WhatsApp",
+                    "Automated confirmations, reminders & reviews",
+                    "Weather operations & slot management",
+                    "Gift vouchers & promo codes",
+                    "20 marketing emails/month included",
+                    "Reports & CSV export",
+                    "Pause anytime for off-season (no charge while paused)"
+                  ].map((f) => (
+                    <div key={f} style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
+                      <span style={{ color: "var(--green)", fontWeight: 700, flexShrink: 0 }}>✓</span>
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <a href="#onboarding" className="primary-button" style={{ display: "inline-block", fontSize: "1rem" }}>Get Started →</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ═══ Onboarding Form ═══ */}
       <section id="onboarding" className="bt-section" style={{ background: "var(--green-light)" }}>
         <div className="shell">
