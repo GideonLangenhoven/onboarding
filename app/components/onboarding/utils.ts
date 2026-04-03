@@ -181,7 +181,7 @@ export function buildFallbackSql(form: FormState) {
   const tenantSlug = slugify(form.business.tenantSlug || form.business.businessName);
   const metadataJson = JSON.stringify(buildLandingPageMetadata(form));
   const statements: string[] = [
-    "-- ActivityHub onboarding fallback migration",
+    "-- BookingTours onboarding fallback migration",
     "-- This script inserts a brand new tenant only. It aborts if the business name or emails already exist.",
     "-- Protected secret metadata below uses masked placeholders so the SQL file never exposes raw keys.",
     "DO $$",
