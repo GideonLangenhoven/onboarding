@@ -708,6 +708,34 @@ export async function POST(request: Request) {
     "Perform a test booking to see exactly what your guests will experience.",
   ];
 
+  // ── Notify super admin of new onboarding ──
+  try {
+    const RESEND_KEY = process.env.RESEND_API_KEY;
+    const ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || "gidslang89@gmail.com";
+    if (RESEND_KEY) {
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: "BookingTours <noreply@bookingtours.co.za>",
+          to: [ADMIN_EMAIL],
+          subject: `New client onboarded: ${payload.business.businessName.trim()}`,
+          html: [
+            `<h2>New Client: ${payload.business.businessName.trim()}</h2>`,
+            `<p><strong>Admin:</strong> ${payload.business.ownerName} (${payload.business.ownerEmail})</p>`,
+            `<p><strong>Phone:</strong> ${payload.business.ownerPhone}</p>`,
+            `<p><strong>Tours:</strong> ${toursCreated} configured, ${slotsCreated} slots generated</p>`,
+            `<p><strong>Subdomain:</strong> ${normalizeSlug(payload.business.tenantSlug || payload.business.businessName)}.bookingtours.co.za</p>`,
+            `<p><strong>Landing page requested:</strong> ${payload.billing?.landingPageRequested ? "Yes" : "No"}</p>`,
+            `<br><p>Review in <a href="https://admin-tawny-delta-92.vercel.app/super-admin">Super Admin Dashboard</a></p>`,
+          ].join(""),
+        }),
+      });
+    }
+  } catch (notifyErr) {
+    console.error("ADMIN_NOTIFY_ERR (non-blocking):", notifyErr);
+  }
+
   return NextResponse.json({
     ok: true,
     businessId,
