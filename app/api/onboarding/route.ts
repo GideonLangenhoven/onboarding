@@ -4,6 +4,23 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
+// Simple in-memory rate limiter — max 3 onboarding attempts per IP per hour
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return false;
+  entry.count += 1;
+  return true;
+}
+
 type TourPayload = {
   name: string;
   description: string;
@@ -411,6 +428,15 @@ export async function POST(request: Request) {
           "Missing Supabase service role configuration. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY before using automated client creation.",
       },
       { status: 500 },
+    );
+  }
+
+  // Rate limiting
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: "Too many onboarding attempts. Please try again in an hour." },
+      { status: 429 },
     );
   }
 

@@ -247,6 +247,7 @@ export const INITIAL_STATE: FormState = {
     ownerPhone: "",
     operatorEmail: "",
     adminPassword: "",
+    confirmPassword: "",
     bookingDomain: "",
   },
   branding: {

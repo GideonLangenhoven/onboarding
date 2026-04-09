@@ -236,6 +236,19 @@ export function OnboardingForm({
               />
             </label>
             <label>
+              Confirm password
+              <input
+                type="password"
+                value={form.business.confirmPassword}
+                onChange={(e) => updateSection("business", "confirmPassword", e.target.value)}
+                placeholder="Type your password again to confirm"
+                required
+              />
+              {form.business.confirmPassword && form.business.adminPassword !== form.business.confirmPassword && (
+                <span style={{ color: "#c0392b", fontSize: "0.8rem", marginTop: 4, display: "block" }}>Passwords do not match</span>
+              )}
+            </label>
+            <label>
               Preferred web domain
               <input
                 value={form.business.bookingDomain}
@@ -962,11 +975,18 @@ export function OnboardingForm({
 
         {/* Submit */}
         <section className="form-card" style={{ textAlign: "center" }}>
+          {/* Honeypot — hidden from humans, visible to bots */}
+          <div style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
+            <label>
+              Leave this empty
+              <input type="text" name="website_url" tabIndex={-1} autoComplete="off" />
+            </label>
+          </div>
           <div className="submit-box">
             <p>
               When you click the button below, we&apos;ll create your booking website, admin dashboard, and AI assistant automatically. You&apos;ll receive login details by email.
             </p>
-            <button type="submit" className="primary-button" disabled={submitting}>
+            <button type="submit" className="primary-button" disabled={submitting || (!!form.business.confirmPassword && form.business.adminPassword !== form.business.confirmPassword)}>
               {submitting ? "Setting up your business..." : "Launch My Business →"}
             </button>
             {submitError ? <p className="error-text">{submitError}</p> : null}

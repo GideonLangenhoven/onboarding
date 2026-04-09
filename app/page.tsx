@@ -38,6 +38,18 @@ export default function HomePage() {
     setSubmitting(true);
     setSubmitError("");
     setSubmitResult(null);
+    // Password confirmation check
+    if (form.business.adminPassword !== form.business.confirmPassword) {
+      setSubmitError("Passwords do not match. Please re-enter your password.");
+      setSubmitting(false);
+      return;
+    }
+    // Honeypot check — bots fill hidden fields
+    const honeypot = (event.target as HTMLFormElement).querySelector('input[name="website_url"]') as HTMLInputElement | null;
+    if (honeypot?.value) {
+      setSubmitting(false);
+      return;
+    }
     try {
       const response = await fetch("/api/onboarding", {
         method: "POST",

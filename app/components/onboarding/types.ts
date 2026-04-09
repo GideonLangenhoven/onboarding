@@ -55,6 +55,7 @@ export type FormState = {
     ownerPhone: string;
     operatorEmail: string;
     adminPassword: string;
+    confirmPassword: string;
     bookingDomain: string;
   };
   branding: {
