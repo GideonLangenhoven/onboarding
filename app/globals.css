@@ -165,6 +165,18 @@ label {
   background: var(--green-light);
   display: block;
 }
+.bt-feature-img-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: var(--green-light);
+}
+.bt-feature-img-pair .bt-feature-img {
+  aspect-ratio: auto;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
 .bt-feature-body {
   padding: 1.25rem;
 }

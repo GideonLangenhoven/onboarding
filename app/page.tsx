@@ -5,13 +5,61 @@ import type { FormState, SubmitResult } from "./components/onboarding/types";
 import { INITIAL_STATE } from "./components/onboarding/constants";
 import { OnboardingForm } from "./components/onboarding/OnboardingForm";
 
-const FEATURES = [
-  { img: "booking-website.png", title: "Your Booking Website", bullets: ["Custom branding & colors", "Live tour availability", "Secure Yoco checkout, promo codes & gift vouchers"] },
-  { img: "ai-chat.png", title: "AI Virtual Host", bullets: ["24/7 chat on your website & WhatsApp", "Trained on your FAQs & tour info", "Guides customers through booking"] },
-  { img: "admin-dashboard.png", title: "Admin Dashboard", bullets: ["Daily manifest & check-ins", "Revenue tracking at a glance", "Live weather monitoring"] },
-  { img: "automation.png", title: "Smart Automation", bullets: ["Day-before reminders via WhatsApp", "Post-trip review requests", "Waiver & payment alerts"] },
-  { img: "marketing.png", title: "Marketing Engine", bullets: ["Drag-and-drop email builder", "Promo codes & audience segmentation", "Automated drip campaigns"] },
-  { img: "reports.png", title: "Reports & Insights", bullets: ["Revenue & attendance reports", "Marketing attribution", "CSV export for accounting"] },
+const FEATURES: { img: string | string[]; title: string; bullets: string[] }[] = [
+  {
+    img: "storefront.png",
+    title: "Branded Booking Website",
+    bullets: [
+      "Your own .co.za domain with custom colours, logo & hero",
+      "Guests see real-time availability and book in under 60 seconds",
+      "Yoco card payments, promo codes & gift vouchers built in",
+    ],
+  },
+  {
+    img: ["chat1.png", "chat2.png"],
+    title: "WhatsApp & Web AI Chatbot",
+    bullets: [
+      "Answers guest questions 24/7 on your site and WhatsApp",
+      "Trained on your tours, FAQs, safety info & SOPs",
+      "Handles bookings, directions, and upsells while you sleep",
+    ],
+  },
+  {
+    img: "bookings.png",
+    title: "Operations Command Centre",
+    bullets: [
+      "Daily manifest with one-tap check-ins and walk-in bookings",
+      "Revenue, pax & payment status across every slot",
+      "Filter by pending, paid, confirmed or cancelled in one click",
+    ],
+  },
+  {
+    img: "Slotmanagement.png",
+    title: "Visual Slot Management",
+    bullets: [
+      "Weekly calendar view of every tour and departure",
+      "Add, cancel or reopen days and slots in seconds",
+      "See live capacity — never overbook again",
+    ],
+  },
+  {
+    img: "Marketing.png",
+    title: "Marketing & Broadcasts",
+    bullets: [
+      "Email campaigns with open-rate and click tracking",
+      "Audience segmentation and automated drip sequences",
+      "Promo codes and loyalty discounts that apply automatically",
+    ],
+  },
+  {
+    img: "Reports.png",
+    title: "Revenue & Occupancy Insights",
+    bullets: [
+      "Filter by tour, date range, or status — see revenue instantly",
+      "Visual pax breakdown by activity to spot your best sellers",
+      "Export to CSV or PDF for your accountant in one click",
+    ],
+  },
 ];
 
 const VIDEOS = [
@@ -135,7 +183,15 @@ export default function HomePage() {
           <div className="bt-features">
             {FEATURES.map((f) => (
               <div key={f.title} className="bt-feature-card">
-                <img src={`/showcase/${f.img}`} alt={f.title} className="bt-feature-img" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                {Array.isArray(f.img) ? (
+                  <div className="bt-feature-img-pair">
+                    {f.img.map((src) => (
+                      <img key={src} src={`/showcase/${src}`} alt={f.title} className="bt-feature-img" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    ))}
+                  </div>
+                ) : (
+                  <img src={`/showcase/${f.img}`} alt={f.title} className="bt-feature-img" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                )}
                 <div className="bt-feature-body">
                   <h3>{f.title}</h3>
                   <ul>{f.bullets.map((b) => <li key={b}>{b}</li>)}</ul>
