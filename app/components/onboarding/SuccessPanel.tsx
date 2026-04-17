@@ -47,6 +47,43 @@ export function SuccessPanel({
           ))}
         </ul>
       </div>
+
+      {/* ── Credential wiring status ── */}
+      {(submitResult.credentialsWired || submitResult.credentialWarnings?.length) && (
+        <div className="guide-card">
+          <h3>Integration status</h3>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            <li style={{ padding: "0.4rem 0", fontSize: "0.9rem" }}>
+              <span style={{ marginRight: "0.5rem" }}>
+                {submitResult.credentialsWired?.whatsapp ? "✅" : "⚪"}
+              </span>
+              <strong>WhatsApp Business:</strong>{" "}
+              {submitResult.credentialsWired?.whatsapp
+                ? "Wired live — AI host + reminders active on day 1."
+                : "Not wired. Add your Access Token + Phone Number ID in Settings → Credentials to enable."}
+            </li>
+            <li style={{ padding: "0.4rem 0", fontSize: "0.9rem" }}>
+              <span style={{ marginRight: "0.5rem" }}>
+                {submitResult.credentialsWired?.yoco ? "✅" : "⚪"}
+              </span>
+              <strong>Yoco Payments:</strong>{" "}
+              {submitResult.credentialsWired?.yoco
+                ? "Wired live — card payments enabled on your booking site."
+                : "Not wired. Add your Secret Key + Webhook Signing Secret in Settings → Credentials to enable."}
+            </li>
+          </ul>
+          {submitResult.credentialWarnings && submitResult.credentialWarnings.length > 0 && (
+            <div style={{ marginTop: "0.75rem", padding: "0.75rem 1rem", borderRadius: "8px", background: "rgba(255, 170, 0, 0.08)", fontSize: "0.85rem" }}>
+              <strong>Heads up:</strong>
+              <ul style={{ margin: "0.4rem 0 0 1rem", padding: 0 }}>
+                {submitResult.credentialWarnings.map((warning, i) => (
+                  <li key={i} style={{ marginBottom: "0.25rem" }}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
       <div className="guide-card">
         <h3>Technical Reference (Internal)</h3>
         <p>

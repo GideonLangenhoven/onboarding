@@ -319,7 +319,9 @@ export const INITIAL_STATE: FormState = {
   },
   secrets: {
     waAccessToken: "",
+    waPhoneId: "",
     yocoSecretKey: "",
+    yocoWebhookSecret: "",
   },
   notes: "",
   faqs: [

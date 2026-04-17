@@ -1,8 +1,22 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import type { FormState, TourDraft, FaqDraft } from "./types";
 import { DAY_OPTIONS, createTour, createFaq } from "./constants";
 import { slugify, toNumber, buildFallbackSql, downloadSql } from "./utils";
+
+const WIZARD_STEPS = [
+  { label: "Business", eyebrow: "1. Business owner", title: "Identity and access" },
+  { label: "Brand", eyebrow: "2. Brand and website", title: "Booking-site presentation" },
+  { label: "Operations", eyebrow: "3. Operational setup", title: "Meeting point, support, and client instructions" },
+  { label: "Tours", eyebrow: "4. Tour catalogue", title: "Activities, pricing, and slot generation" },
+  { label: "Policies", eyebrow: "5. Policies", title: "Discount and cancellation logic" },
+  { label: "SOPs", eyebrow: "6. How you run your business", title: "Standard Operating Procedures" },
+  { label: "AI Host", eyebrow: "7. Your Virtual Host", title: "AI tone and automatic messages" },
+  { label: "FAQs", eyebrow: "8. Common Questions", title: "Teach your AI virtual host how to answer guests" },
+  { label: "Payments & Chat", eyebrow: "9. Payments & WhatsApp", title: "Connect Yoco and WhatsApp Business API" },
+  { label: "Launch", eyebrow: "10. Review", title: "Launch your business" },
+];
 
 export function OnboardingForm({
   form,
@@ -10,12 +24,14 @@ export function OnboardingForm({
   submitting,
   submitError,
   onSubmit,
+  onBack,
 }: {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   submitting: boolean;
   submitError: string;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onBack?: () => void;
 }) {
   const extraPages = Math.max(0, Number(form.billing.pagesRequested || "1") - 1);
   const landingBuildPrice = 3500 + extraPages * 1500;
@@ -136,143 +152,110 @@ export function OnboardingForm({
     }));
   }
 
+  const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<"next" | "back">("next");
+  const [animating, setAnimating] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  function goTo(next: number) {
+    if (animating || next === step) return;
+    setDirection(next > step ? "next" : "back");
+    setAnimating(true);
+    setTimeout(() => {
+      setStep(next);
+      setAnimating(false);
+      contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 300);
+  }
+
+  const isLast = step === WIZARD_STEPS.length - 1;
+
   return (
-    <form className="onboarding-form" onSubmit={onSubmit}>
-      <div className="form-grid">
-        {/* 1. Business owner */}
-        <section className="form-card">
-          <div className="section-header compact">
-            <p className="eyebrow">1. Business owner</p>
-            <h2>Identity and access</h2>
-          </div>
+    <form className="onboarding-form" onSubmit={onSubmit} ref={contentRef}>
+      {/* ── Step content ── */}
+      <div className={`wizard-panel ${animating ? (direction === "next" ? "slide-out-left" : "slide-out-right") : "slide-in"}`}>
+        <div className="section-header compact" style={{ textAlign: "center", marginBottom: "0.75rem" }}>
+          <p className="eyebrow">{WIZARD_STEPS[step].eyebrow}</p>
+          <h2>{WIZARD_STEPS[step].title}</h2>
+        </div>
+
+      {step === 0 && (
+        <div className="wizard-step-content">
           <div className="field-grid">
             <label>
               Public business name
-              <input
-                value={form.business.businessName}
-                onChange={(e) => updateBusinessName(e.target.value)}
-                placeholder="e.g. Coastline Adventures"
-                required
-              />
+              <span className="field-hint">The name guests will see on your booking site</span>
+              <input value={form.business.businessName} onChange={(e) => updateBusinessName(e.target.value)} placeholder="e.g. Coastline Adventures" required />
             </label>
             <label>
               Your unique link (URL)
-              <input
-                value={form.business.tenantSlug}
-                onChange={(e) => updateSection("business", "tenantSlug", slugify(e.target.value))}
-                placeholder="e.g. coastline-adventures"
-                required
-              />
+              <span className="field-hint">Your subdomain at bookingtours.co.za</span>
+              <input value={form.business.tenantSlug} onChange={(e) => updateSection("business", "tenantSlug", slugify(e.target.value))} placeholder="e.g. coastline-adventures" required />
             </label>
             <label>
               Legal entity name
-              <input
-                value={form.business.legalName}
-                onChange={(e) => updateSection("business", "legalName", e.target.value)}
-                placeholder="Coastline Adventures (Pty) Ltd"
-              />
+              <span className="field-hint">Registered company name for invoices and terms</span>
+              <input value={form.business.legalName} onChange={(e) => updateSection("business", "legalName", e.target.value)} placeholder="Coastline Adventures (Pty) Ltd" />
             </label>
             <label>
               Industry
-              <input
-                value={form.business.industry}
-                onChange={(e) => updateSection("business", "industry", e.target.value)}
-                placeholder="Kayaking, diving, safari, tours"
-              />
+              <span className="field-hint">Helps us tailor your booking site and AI assistant</span>
+              <input value={form.business.industry} onChange={(e) => updateSection("business", "industry", e.target.value)} placeholder="Kayaking, diving, safari, tours" />
             </label>
             <label>
               Year established
-              <input
-                value={form.business.yearEstablished}
-                onChange={(e) => updateSection("business", "yearEstablished", e.target.value)}
-                placeholder="2018"
-              />
+              <span className="field-hint">Displayed on your booking site to build trust</span>
+              <input value={form.business.yearEstablished} onChange={(e) => updateSection("business", "yearEstablished", e.target.value)} placeholder="2018" />
             </label>
             <label>
               Primary contact
-              <input
-                value={form.business.ownerName}
-                onChange={(e) => updateSection("business", "ownerName", e.target.value)}
-                placeholder="Jane Smith"
-                required
-              />
+              <span className="field-hint">Main person who manages bookings</span>
+              <input value={form.business.ownerName} onChange={(e) => updateSection("business", "ownerName", e.target.value)} placeholder="Jane Smith" required />
             </label>
             <label>
               Primary email
-              <input
-                type="email"
-                value={form.business.ownerEmail}
-                onChange={(e) => updateSection("business", "ownerEmail", e.target.value)}
-                placeholder="jane@business.com"
-                required
-              />
+              <span className="field-hint">Used to log in to your admin dashboard</span>
+              <input type="email" value={form.business.ownerEmail} onChange={(e) => updateSection("business", "ownerEmail", e.target.value)} placeholder="jane@business.com" required />
             </label>
             <label>
               Primary phone
-              <input
-                value={form.business.ownerPhone}
-                onChange={(e) => updateSection("business", "ownerPhone", e.target.value)}
-                placeholder="+27 82 123 4567"
-                required
-              />
+              <span className="field-hint">For account recovery and urgent notifications</span>
+              <input value={form.business.ownerPhone} onChange={(e) => updateSection("business", "ownerPhone", e.target.value)} placeholder="+27 82 123 4567" required />
             </label>
             <label>
               Operator email
-              <input
-                type="email"
-                value={form.business.operatorEmail}
-                onChange={(e) => updateSection("business", "operatorEmail", e.target.value)}
-                placeholder="ops@business.com"
-              />
+              <span className="field-hint">Daily operations contact, if different from above</span>
+              <input type="email" value={form.business.operatorEmail} onChange={(e) => updateSection("business", "operatorEmail", e.target.value)} placeholder="ops@business.com" />
             </label>
             <label>
               Your admin password
-              <input
-                type="password"
-                value={form.business.adminPassword}
-                onChange={(e) => updateSection("business", "adminPassword", e.target.value)}
-                placeholder="Choose your first secure password"
-                required
-              />
+              <span className="field-hint">You will use this to log in to your dashboard</span>
+              <input type="password" value={form.business.adminPassword} onChange={(e) => updateSection("business", "adminPassword", e.target.value)} placeholder="Choose your first secure password" required />
             </label>
             <label>
               Confirm password
-              <input
-                type="password"
-                value={form.business.confirmPassword}
-                onChange={(e) => updateSection("business", "confirmPassword", e.target.value)}
-                placeholder="Type your password again to confirm"
-                required
-              />
+              <span className="field-hint">Type it again to make sure there are no typos</span>
+              <input type="password" value={form.business.confirmPassword} onChange={(e) => updateSection("business", "confirmPassword", e.target.value)} placeholder="Type your password again to confirm" required />
               {form.business.confirmPassword && form.business.adminPassword !== form.business.confirmPassword && (
                 <span style={{ color: "#c0392b", fontSize: "0.8rem", marginTop: 4, display: "block" }}>Passwords do not match</span>
               )}
             </label>
             <label>
               Preferred web domain
-              <input
-                value={form.business.bookingDomain}
-                onChange={(e) => updateSection("business", "bookingDomain", e.target.value)}
-                placeholder="e.g. book.yourbusiness.com"
-              />
+              <span className="field-hint">Custom domain if you have one, otherwise we assign one</span>
+              <input value={form.business.bookingDomain} onChange={(e) => updateSection("business", "bookingDomain", e.target.value)} placeholder="e.g. book.yourbusiness.com" />
             </label>
             <label className="full-span">
               Business tagline
-              <input
-                value={form.business.tagline}
-                onChange={(e) => updateSection("business", "tagline", e.target.value)}
-                placeholder="Ocean experiences with expert local guides"
-              />
+              <span className="field-hint">Short motto shown on your booking site hero section</span>
+              <input value={form.business.tagline} onChange={(e) => updateSection("business", "tagline", e.target.value)} placeholder="Ocean experiences with expert local guides" />
             </label>
           </div>
-        </section>
+        </div>
+      )}
 
-        {/* 2. Branding */}
-        <section className="form-card">
-          <div className="section-header compact">
-            <p className="eyebrow">2. Brand and website</p>
-            <h2>Booking-site presentation</h2>
-          </div>
+      {step === 1 && (
+        <div className="wizard-step-content">
           <div className="field-grid">
             <label>
               Logo URL
@@ -305,51 +288,57 @@ export function OnboardingForm({
               <textarea
                 value={form.branding.heroSubtitle}
                 onChange={(e) => updateSection("branding", "heroSubtitle", e.target.value)}
-                rows={3}
+                rows={2}
                 placeholder="Short homepage intro that explains the signature experience."
               />
             </label>
             <label>
               Primary color
-              <input
-                value={form.branding.colorMain}
-                onChange={(e) => updateSection("branding", "colorMain", e.target.value)}
-              />
+              <span className="field-hint">Main brand colour used for headings and accents</span>
+              <div className="color-field">
+                <input type="color" value={form.branding.colorMain} onChange={(e) => updateSection("branding", "colorMain", e.target.value)} className="color-swatch" />
+                <input value={form.branding.colorMain} onChange={(e) => updateSection("branding", "colorMain", e.target.value)} placeholder="#185f75" />
+              </div>
             </label>
             <label>
               Secondary color
-              <input
-                value={form.branding.colorSecondary}
-                onChange={(e) => updateSection("branding", "colorSecondary", e.target.value)}
-              />
+              <span className="field-hint">Darker accent for footers, text overlays and contrast areas</span>
+              <div className="color-field">
+                <input type="color" value={form.branding.colorSecondary} onChange={(e) => updateSection("branding", "colorSecondary", e.target.value)} className="color-swatch" />
+                <input value={form.branding.colorSecondary} onChange={(e) => updateSection("branding", "colorSecondary", e.target.value)} placeholder="#132833" />
+              </div>
             </label>
             <label>
               CTA color
-              <input
-                value={form.branding.colorCta}
-                onChange={(e) => updateSection("branding", "colorCta", e.target.value)}
-              />
+              <span className="field-hint">Buttons and links that encourage guests to take action</span>
+              <div className="color-field">
+                <input type="color" value={form.branding.colorCta} onChange={(e) => updateSection("branding", "colorCta", e.target.value)} className="color-swatch" />
+                <input value={form.branding.colorCta} onChange={(e) => updateSection("branding", "colorCta", e.target.value)} placeholder="#ca6c2f" />
+              </div>
             </label>
             <label>
               Background color
-              <input
-                value={form.branding.colorBg}
-                onChange={(e) => updateSection("branding", "colorBg", e.target.value)}
-              />
+              <span className="field-hint">Page background behind your content sections</span>
+              <div className="color-field">
+                <input type="color" value={form.branding.colorBg} onChange={(e) => updateSection("branding", "colorBg", e.target.value)} className="color-swatch" />
+                <input value={form.branding.colorBg} onChange={(e) => updateSection("branding", "colorBg", e.target.value)} placeholder="#f5efe4" />
+              </div>
             </label>
             <label>
               Nav color
-              <input
-                value={form.branding.colorNav}
-                onChange={(e) => updateSection("branding", "colorNav", e.target.value)}
-              />
+              <span className="field-hint">Top navigation bar background on your booking site</span>
+              <div className="color-field">
+                <input type="color" value={form.branding.colorNav} onChange={(e) => updateSection("branding", "colorNav", e.target.value)} className="color-swatch" />
+                <input value={form.branding.colorNav} onChange={(e) => updateSection("branding", "colorNav", e.target.value)} placeholder="#fffaf2" />
+              </div>
             </label>
             <label>
               Hover color
-              <input
-                value={form.branding.colorHover}
-                onChange={(e) => updateSection("branding", "colorHover", e.target.value)}
-              />
+              <span className="field-hint">Highlight when guests hover over buttons or links</span>
+              <div className="color-field">
+                <input type="color" value={form.branding.colorHover} onChange={(e) => updateSection("branding", "colorHover", e.target.value)} className="color-swatch" />
+                <input value={form.branding.colorHover} onChange={(e) => updateSection("branding", "colorHover", e.target.value)} placeholder="#ffd9bf" />
+              </div>
             </label>
             <label className="full-span">
               Chat avatar URL
@@ -360,140 +349,83 @@ export function OnboardingForm({
               />
             </label>
           </div>
-        </section>
+        </div>
+      )}
 
-        {/* 3. Operations */}
-        <section className="form-card full-width">
-          <div className="section-header compact">
-            <p className="eyebrow">3. Operational setup</p>
-            <h2>Meeting point, support, and client instructions</h2>
-          </div>
+      {step === 2 && (
+        <div className="wizard-step-content">
           <div className="field-grid">
             <label>
               Timezone
-              <input
-                value={form.operations.timezone}
-                onChange={(e) => updateSection("operations", "timezone", e.target.value)}
-                placeholder="Africa/Johannesburg"
-              />
+              <span className="field-hint">Used for booking times and reminders</span>
+              <input value={form.operations.timezone} onChange={(e) => updateSection("operations", "timezone", e.target.value)} placeholder="Africa/Johannesburg" />
             </label>
             <label>
               City
-              <input
-                value={form.operations.city}
-                onChange={(e) => updateSection("operations", "city", e.target.value)}
-                placeholder="Cape Town"
-              />
+              <span className="field-hint">Where your business operates</span>
+              <input value={form.operations.city} onChange={(e) => updateSection("operations", "city", e.target.value)} placeholder="Cape Town" />
             </label>
             <label>
               WhatsApp phone
-              <input
-                value={form.operations.whatsappPhone}
-                onChange={(e) => updateSection("operations", "whatsappPhone", e.target.value)}
-                placeholder="+27 21 123 4567"
-              />
+              <span className="field-hint">Guests can reach you here via WhatsApp</span>
+              <input value={form.operations.whatsappPhone} onChange={(e) => updateSection("operations", "whatsappPhone", e.target.value)} placeholder="+27 21 123 4567" />
             </label>
             <label>
               Office hours
-              <input
-                value={form.operations.officeHours}
-                onChange={(e) => updateSection("operations", "officeHours", e.target.value)}
-                placeholder="08:00-17:00"
-              />
+              <span className="field-hint">When your team is available for enquiries</span>
+              <input value={form.operations.officeHours} onChange={(e) => updateSection("operations", "officeHours", e.target.value)} placeholder="08:00-17:00" />
             </label>
             <label>
               Review URL
-              <input
-                type="url"
-                value={form.operations.reviewUrl}
-                onChange={(e) => updateSection("operations", "reviewUrl", e.target.value)}
-                placeholder="https://g.page/..."
-              />
+              <span className="field-hint">Google or TripAdvisor link for post-trip reviews</span>
+              <input type="url" value={form.operations.reviewUrl} onChange={(e) => updateSection("operations", "reviewUrl", e.target.value)} placeholder="https://g.page/..." />
             </label>
             <label>
               Arrive early (minutes)
-              <input
-                value={form.operations.arriveEarlyMinutes}
-                onChange={(e) => updateSection("operations", "arriveEarlyMinutes", e.target.value)}
-                placeholder="15"
-              />
+              <span className="field-hint">How early guests should arrive before departure</span>
+              <input value={form.operations.arriveEarlyMinutes} onChange={(e) => updateSection("operations", "arriveEarlyMinutes", e.target.value)} placeholder="15" />
             </label>
             <label className="full-span">
               Meeting point
-              <textarea
-                value={form.operations.meetingPoint}
-                onChange={(e) => updateSection("operations", "meetingPoint", e.target.value)}
-                rows={3}
-                placeholder="180 Beach Rd, Three Anchor Bay, Cape Town"
-                required
-              />
+              <span className="field-hint">Full address shown to guests in their booking confirmation</span>
+              <textarea value={form.operations.meetingPoint} onChange={(e) => updateSection("operations", "meetingPoint", e.target.value)} rows={2} placeholder="180 Beach Rd, Three Anchor Bay, Cape Town" required />
             </label>
             <label className="full-span">
               Google Maps URL
-              <input
-                type="url"
-                value={form.operations.googleMapsUrl}
-                onChange={(e) => updateSection("operations", "googleMapsUrl", e.target.value)}
-                placeholder="https://maps.google.com/..."
-              />
+              <span className="field-hint">Direct link so guests can navigate to you</span>
+              <input type="url" value={form.operations.googleMapsUrl} onChange={(e) => updateSection("operations", "googleMapsUrl", e.target.value)} placeholder="https://maps.google.com/..." />
             </label>
             <label>
               Parking info
-              <textarea
-                value={form.operations.parkingInfo}
-                onChange={(e) => updateSection("operations", "parkingInfo", e.target.value)}
-                rows={4}
-                placeholder="Street parking, paid parking, shuttle notes"
-              />
+              <span className="field-hint">Parking options near your meeting point</span>
+              <textarea value={form.operations.parkingInfo} onChange={(e) => updateSection("operations", "parkingInfo", e.target.value)} rows={2} placeholder="Street parking, paid parking, shuttle notes" />
             </label>
             <label>
               Facilities
-              <textarea
-                value={form.operations.facilities}
-                onChange={(e) => updateSection("operations", "facilities", e.target.value)}
-                rows={4}
-                placeholder="Toilets, lockers, changing rooms"
-              />
+              <span className="field-hint">On-site amenities guests can use</span>
+              <textarea value={form.operations.facilities} onChange={(e) => updateSection("operations", "facilities", e.target.value)} rows={2} placeholder="Toilets, lockers, changing rooms" />
             </label>
             <label>
               What to bring
-              <textarea
-                value={form.operations.whatToBring}
-                onChange={(e) => updateSection("operations", "whatToBring", e.target.value)}
-                rows={4}
-                placeholder="Sunscreen, hat, towel, water"
-                required
-              />
+              <span className="field-hint">Included in the booking reminder to guests</span>
+              <textarea value={form.operations.whatToBring} onChange={(e) => updateSection("operations", "whatToBring", e.target.value)} rows={2} placeholder="Sunscreen, hat, towel, water" required />
             </label>
             <label>
               What to wear
-              <textarea
-                value={form.operations.whatToWear}
-                onChange={(e) => updateSection("operations", "whatToWear", e.target.value)}
-                rows={4}
-                placeholder="Comfortable clothes you do not mind getting wet"
-                required
-              />
+              <span className="field-hint">Clothing advice sent with the booking confirmation</span>
+              <textarea value={form.operations.whatToWear} onChange={(e) => updateSection("operations", "whatToWear", e.target.value)} rows={2} placeholder="Comfortable clothes you do not mind getting wet" required />
             </label>
             <label className="full-span">
               Safety info
-              <textarea
-                value={form.operations.safetyInfo}
-                onChange={(e) => updateSection("operations", "safetyInfo", e.target.value)}
-                rows={5}
-                placeholder="Guides, safety gear, age limits, restrictions"
-                required
-              />
+              <span className="field-hint">Shown on your booking page and used by the AI chatbot</span>
+              <textarea value={form.operations.safetyInfo} onChange={(e) => updateSection("operations", "safetyInfo", e.target.value)} rows={2} placeholder="Guides, safety gear, age limits, restrictions" required />
             </label>
           </div>
-        </section>
+        </div>
+      )}
 
-        {/* 4. Tours */}
-        <section className="form-card full-width">
-          <div className="section-header compact">
-            <p className="eyebrow">4. Tour catalogue</p>
-            <h2>Activities, pricing, and slot generation</h2>
-          </div>
+      {step === 3 && (
+        <div className="wizard-step-content">
           <div className="stack">
             {form.tours.map((tour, index) => (
               <article className="tour-card" key={`${tour.name}-${index}`}>
@@ -564,7 +496,7 @@ export function OnboardingForm({
                     <textarea
                       value={tour.description}
                       onChange={(e) => updateTour(index, "description", e.target.value)}
-                      rows={4}
+                      rows={2}
                       placeholder="Guided experience summary for clients and staff."
                     />
                   </label>
@@ -589,7 +521,7 @@ export function OnboardingForm({
                     <textarea
                       value={tour.inclusions}
                       onChange={(e) => updateTour(index, "inclusions", e.target.value)}
-                      rows={3}
+                      rows={2}
                       placeholder="Guide, equipment, briefing, snacks"
                     />
                   </label>
@@ -598,7 +530,7 @@ export function OnboardingForm({
                     <textarea
                       value={tour.exclusions}
                       onChange={(e) => updateTour(index, "exclusions", e.target.value)}
-                      rows={3}
+                      rows={2}
                       placeholder="Transport, drinks, wetsuit rental"
                     />
                   </label>
@@ -607,7 +539,7 @@ export function OnboardingForm({
                     <textarea
                       value={tour.restrictions}
                       onChange={(e) => updateTour(index, "restrictions", e.target.value)}
-                      rows={3}
+                      rows={2}
                       placeholder="Age, weight, health, experience"
                     />
                   </label>
@@ -667,230 +599,147 @@ export function OnboardingForm({
           <button type="button" className="primary-button secondary" onClick={addTour}>
             Add another tour
           </button>
-        </section>
+        </div>
+      )}
 
-        {/* 5. Policies */}
-        <section className="form-card">
-          <div className="section-header compact">
-            <p className="eyebrow">5. Policies</p>
-            <h2>Discount and cancellation logic</h2>
-          </div>
+      {step === 4 && (
+        <div className="wizard-step-content">
           <div className="field-grid">
             <label>
               Free cancel hours before
-              <input
-                value={form.policies.freeCancelHoursBefore}
-                onChange={(e) => updateSection("policies", "freeCancelHoursBefore", e.target.value)}
-              />
+              <span className="field-hint">Hours before departure when guests can cancel for free</span>
+              <input value={form.policies.freeCancelHoursBefore} onChange={(e) => updateSection("policies", "freeCancelHoursBefore", e.target.value)} />
             </label>
             <label>
               No refund within hours
-              <input
-                value={form.policies.noRefundWithinHours}
-                onChange={(e) => updateSection("policies", "noRefundWithinHours", e.target.value)}
-              />
+              <span className="field-hint">Inside this window, no refund is given</span>
+              <input value={form.policies.noRefundWithinHours} onChange={(e) => updateSection("policies", "noRefundWithinHours", e.target.value)} />
             </label>
             <label>
               Partial refund window
-              <input
-                value={form.policies.partialRefundHoursBefore}
-                onChange={(e) => updateSection("policies", "partialRefundHoursBefore", e.target.value)}
-              />
+              <span className="field-hint">Hours before departure for a partial refund</span>
+              <input value={form.policies.partialRefundHoursBefore} onChange={(e) => updateSection("policies", "partialRefundHoursBefore", e.target.value)} />
             </label>
             <label>
               Partial refund percent
-              <input
-                value={form.policies.partialRefundPercent}
-                onChange={(e) => updateSection("policies", "partialRefundPercent", e.target.value)}
-              />
+              <span className="field-hint">Percentage refunded during the partial window</span>
+              <input value={form.policies.partialRefundPercent} onChange={(e) => updateSection("policies", "partialRefundPercent", e.target.value)} />
             </label>
             <label>
               Reschedule allowed before
-              <input
-                value={form.policies.rescheduleAllowedHoursBefore}
-                onChange={(e) => updateSection("policies", "rescheduleAllowedHoursBefore", e.target.value)}
-              />
+              <span className="field-hint">Hours before departure when rescheduling is allowed</span>
+              <input value={form.policies.rescheduleAllowedHoursBefore} onChange={(e) => updateSection("policies", "rescheduleAllowedHoursBefore", e.target.value)} />
             </label>
             <label>
               Group discount minimum qty
-              <input
-                value={form.policies.groupDiscountMinQty}
-                onChange={(e) => updateSection("policies", "groupDiscountMinQty", e.target.value)}
-              />
+              <span className="field-hint">Minimum guests in one booking to trigger group pricing</span>
+              <input value={form.policies.groupDiscountMinQty} onChange={(e) => updateSection("policies", "groupDiscountMinQty", e.target.value)} />
             </label>
             <label>
               Group discount percent
-              <input
-                value={form.policies.groupDiscountPercent}
-                onChange={(e) => updateSection("policies", "groupDiscountPercent", e.target.value)}
-              />
+              <span className="field-hint">Discount applied when the group minimum is met</span>
+              <input value={form.policies.groupDiscountPercent} onChange={(e) => updateSection("policies", "groupDiscountPercent", e.target.value)} />
             </label>
             <label>
               Loyalty threshold
-              <input
-                value={form.policies.loyaltyBookingsThreshold}
-                onChange={(e) => updateSection("policies", "loyaltyBookingsThreshold", e.target.value)}
-              />
+              <span className="field-hint">Number of bookings before loyalty discount kicks in</span>
+              <input value={form.policies.loyaltyBookingsThreshold} onChange={(e) => updateSection("policies", "loyaltyBookingsThreshold", e.target.value)} />
             </label>
             <label>
               Loyalty discount percent
-              <input
-                value={form.policies.loyaltyDiscountPercent}
-                onChange={(e) => updateSection("policies", "loyaltyDiscountPercent", e.target.value)}
-              />
+              <span className="field-hint">Discount for returning guests who reach the threshold</span>
+              <input value={form.policies.loyaltyDiscountPercent} onChange={(e) => updateSection("policies", "loyaltyDiscountPercent", e.target.value)} />
             </label>
             <label>
               Loyalty period days
-              <input
-                value={form.policies.loyaltyPeriodDays}
-                onChange={(e) => updateSection("policies", "loyaltyPeriodDays", e.target.value)}
-              />
+              <span className="field-hint">How long loyalty status lasts before it resets</span>
+              <input value={form.policies.loyaltyPeriodDays} onChange={(e) => updateSection("policies", "loyaltyPeriodDays", e.target.value)} />
             </label>
           </div>
-        </section>
+        </div>
+      )}
 
-        {/* 6. SOPs */}
-        <section className="form-card full-width">
-          <div className="section-header compact">
-            <p className="eyebrow">6. How you run your business</p>
-            <h2>Standard Operating Procedures (SOPs)</h2>
-          </div>
+      {step === 5 && (
+        <div className="wizard-step-content">
           <div className="field-grid">
             <label>
               Weather cancellation SOP
-              <textarea
-                value={form.sops.weatherCancellation}
-                onChange={(e) => updateSection("sops", "weatherCancellation", e.target.value)}
-                rows={5}
-                placeholder="Wind thresholds, cancellation authority, client comms timing, refund or reschedule rule."
-                required
-              />
+              <span className="field-hint">When and how you cancel due to weather</span>
+              <textarea value={form.sops.weatherCancellation} onChange={(e) => updateSection("sops", "weatherCancellation", e.target.value)} rows={2} placeholder="Wind thresholds, cancellation authority, client comms timing, refund or reschedule rule." required />
             </label>
             <label>
               Emergency response SOP
-              <textarea
-                value={form.sops.emergencyResponse}
-                onChange={(e) => updateSection("sops", "emergencyResponse", e.target.value)}
-                rows={5}
-                placeholder="Emergency contacts, escalation steps, medical protocol, evacuation notes."
-                required
-              />
+              <span className="field-hint">Steps your team follows in an emergency</span>
+              <textarea value={form.sops.emergencyResponse} onChange={(e) => updateSection("sops", "emergencyResponse", e.target.value)} rows={2} placeholder="Emergency contacts, escalation steps, medical protocol, evacuation notes." required />
             </label>
             <label>
               Pre-trip briefing SOP
-              <textarea
-                value={form.sops.preTripBriefing}
-                onChange={(e) => updateSection("sops", "preTripBriefing", e.target.value)}
-                rows={5}
-                placeholder="Safety script, waiver reminder, gear fit, route explanation."
-              />
+              <span className="field-hint">What guides cover before each departure</span>
+              <textarea value={form.sops.preTripBriefing} onChange={(e) => updateSection("sops", "preTripBriefing", e.target.value)} rows={2} placeholder="Safety script, waiver reminder, gear fit, route explanation." />
             </label>
             <label>
               Check-in flow SOP
-              <textarea
-                value={form.sops.checkInFlow}
-                onChange={(e) => updateSection("sops", "checkInFlow", e.target.value)}
-                rows={5}
-                placeholder="Arrival handling, waiver checks, payment check, attendance marking."
-              />
+              <span className="field-hint">How guests are received on arrival</span>
+              <textarea value={form.sops.checkInFlow} onChange={(e) => updateSection("sops", "checkInFlow", e.target.value)} rows={2} placeholder="Arrival handling, waiver checks, payment check, attendance marking." />
             </label>
             <label>
               Guide operations SOP
-              <textarea
-                value={form.sops.guideOperations}
-                onChange={(e) => updateSection("sops", "guideOperations", e.target.value)}
-                rows={5}
-                placeholder="Guide roster expectations, handoff, route changes, communication rules."
-              />
+              <span className="field-hint">Daily expectations and handoff rules for guides</span>
+              <textarea value={form.sops.guideOperations} onChange={(e) => updateSection("sops", "guideOperations", e.target.value)} rows={2} placeholder="Guide roster expectations, handoff, route changes, communication rules." />
             </label>
             <label>
               Equipment handling SOP
-              <textarea
-                value={form.sops.equipmentHandling}
-                onChange={(e) => updateSection("sops", "equipmentHandling", e.target.value)}
-                rows={5}
-                placeholder="Gear issue, maintenance, wash-down, storage, damage reporting."
-              />
+              <span className="field-hint">How gear is issued, cleaned and stored</span>
+              <textarea value={form.sops.equipmentHandling} onChange={(e) => updateSection("sops", "equipmentHandling", e.target.value)} rows={2} placeholder="Gear issue, maintenance, wash-down, storage, damage reporting." />
             </label>
             <label>
               Incident reporting SOP
-              <textarea
-                value={form.sops.incidentReporting}
-                onChange={(e) => updateSection("sops", "incidentReporting", e.target.value)}
-                rows={5}
-                placeholder="Near misses, injuries, customer complaints, who logs what and when."
-              />
+              <span className="field-hint">What gets reported, by whom, and when</span>
+              <textarea value={form.sops.incidentReporting} onChange={(e) => updateSection("sops", "incidentReporting", e.target.value)} rows={2} placeholder="Near misses, injuries, customer complaints, who logs what and when." />
             </label>
             <label>
               Refund and escalation SOP
-              <textarea
-                value={form.sops.refundEscalation}
-                onChange={(e) => updateSection("sops", "refundEscalation", e.target.value)}
-                rows={5}
-                placeholder="When staff may refund, when to escalate, expected response times."
-              />
+              <span className="field-hint">Who can approve refunds and when to escalate</span>
+              <textarea value={form.sops.refundEscalation} onChange={(e) => updateSection("sops", "refundEscalation", e.target.value)} rows={2} placeholder="When staff may refund, when to escalate, expected response times." />
             </label>
           </div>
-        </section>
+        </div>
+      )}
 
-        {/* 7. Automations */}
-        <section className="form-card">
-          <div className="section-header compact">
-            <p className="eyebrow">7. Your Virtual Host</p>
-            <h2>AI tone and automatic messages</h2>
-          </div>
+      {step === 6 && (
+        <div className="wizard-step-content">
           <div className="field-grid">
             <label className="full-span">
               AI persona
-              <textarea
-                value={form.automations.aiPersona}
-                onChange={(e) => updateSection("automations", "aiPersona", e.target.value)}
-                rows={5}
-                placeholder="Friendly, operational, concise."
-              />
+              <span className="field-hint">Describe the tone and personality of your chatbot — it will use this when talking to guests</span>
+              <textarea value={form.automations.aiPersona} onChange={(e) => updateSection("automations", "aiPersona", e.target.value)} rows={2} placeholder="Friendly, operational, concise." />
             </label>
             <label className="checkbox-field">
-              <input
-                type="checkbox"
-                checked={form.automations.reminderEnabled}
-                onChange={(e) => updateSection("automations", "reminderEnabled", e.target.checked)}
-              />
+              <input type="checkbox" checked={form.automations.reminderEnabled} onChange={(e) => updateSection("automations", "reminderEnabled", e.target.checked)} />
               Enable day-before reminders
+              <span className="field-hint">WhatsApp message sent to guests the day before their trip</span>
             </label>
             <label className="checkbox-field">
-              <input
-                type="checkbox"
-                checked={form.automations.reviewRequestEnabled}
-                onChange={(e) => updateSection("automations", "reviewRequestEnabled", e.target.checked)}
-              />
+              <input type="checkbox" checked={form.automations.reviewRequestEnabled} onChange={(e) => updateSection("automations", "reviewRequestEnabled", e.target.checked)} />
               Enable post-trip review requests
+              <span className="field-hint">Automatically ask guests to leave a Google review after their trip</span>
             </label>
             <label className="checkbox-field">
-              <input
-                type="checkbox"
-                checked={form.automations.reengagementEnabled}
-                onChange={(e) => updateSection("automations", "reengagementEnabled", e.target.checked)}
-              />
+              <input type="checkbox" checked={form.automations.reengagementEnabled} onChange={(e) => updateSection("automations", "reengagementEnabled", e.target.checked)} />
               Enable re-engagement campaigns
+              <span className="field-hint">Reach out to past guests with special offers to bring them back</span>
             </label>
             <label className="full-span">
               Automation notes
-              <textarea
-                value={form.automations.notes}
-                onChange={(e) => updateSection("automations", "notes", e.target.value)}
-                rows={4}
-                placeholder="Anything special about support tone, upsells, reminders, or follow-up rules."
-              />
+              <span className="field-hint">Any special rules for how automated messages should behave</span>
+              <textarea value={form.automations.notes} onChange={(e) => updateSection("automations", "notes", e.target.value)} rows={2} placeholder="Anything special about support tone, upsells, reminders, or follow-up rules." />
             </label>
           </div>
-        </section>
+        </div>
+      )}
 
-        {/* 8. FAQs */}
-        <section className="form-card full-width">
-          <div className="section-header compact">
-            <p className="eyebrow">8. Common Questions</p>
-            <h2>Teach your AI virtual host how to answer guests</h2>
-          </div>
+      {step === 7 && (
+        <div className="wizard-step-content">
           <div className="stack">
             {form.faqs.map((faq, index) => (
               <div key={`${faq.question}-${index}`} className="faq-card">
@@ -908,7 +757,7 @@ export function OnboardingForm({
                     <textarea
                       value={faq.answer}
                       onChange={(e) => updateFaq(index, "answer", e.target.value)}
-                      rows={4}
+                      rows={2}
                       placeholder="Write the approved business answer for this FAQ."
                     />
                   </label>
@@ -924,14 +773,11 @@ export function OnboardingForm({
           <button type="button" className="primary-button secondary" onClick={addFaq}>
             Add FAQ item
           </button>
-        </section>
+        </div>
+      )}
 
-        {/* 9. Landing Page & Integration */}
-        <section className="form-card">
-          <div className="section-header compact">
-            <p className="eyebrow">9. Landing Page & Integration</p>
-            <h2>Your website and payment setup</h2>
-          </div>
+      {step === 8 && (
+        <div className="wizard-step-content">
           <div className="stack">
             <label className="checkbox-field">
               <input
@@ -948,33 +794,121 @@ export function OnboardingForm({
             )}
           </div>
 
-          <div className="field-grid" style={{ marginTop: "1.25rem" }}>
-            <label className="full-span">
-              WhatsApp Access Token
-              <input
-                type="password"
-                value={form.secrets.waAccessToken}
-                onChange={(e) => updateSection("secrets", "waAccessToken", e.target.value)}
-                placeholder="Don't have this yet? No problem — we'll help you set it up"
-              />
-            </label>
-            <label className="full-span">
-              Yoco Secret Key
-              <input
-                type="password"
-                value={form.secrets.yocoSecretKey}
-                onChange={(e) => updateSection("secrets", "yocoSecretKey", e.target.value)}
-                placeholder="Don't have this yet? No problem — we'll help you set it up"
-              />
-            </label>
-          </div>
-          <p style={{ marginTop: "1rem", fontSize: "0.82rem", color: "var(--muted)", lineHeight: 1.6 }}>
-            Don&apos;t worry if you don&apos;t have these yet — your BookingTours team will walk you through connecting WhatsApp and payments after setup.
+          <p style={{ marginTop: "1.5rem", fontSize: "0.9rem", lineHeight: 1.6 }}>
+            To accept card payments and send WhatsApp reminders, we need two sets of keys. If you don&apos;t have them yet, expand the guide under each one — it walks you through getting them in about 10 minutes.
           </p>
-        </section>
 
-        {/* Submit */}
-        <section className="form-card" style={{ textAlign: "center" }}>
+          {/* ─────────────────── Yoco (Payments) ─────────────────── */}
+          <section style={{ marginTop: "1.5rem", padding: "1.25rem", borderRadius: "14px", border: "1px solid rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.02)" }}>
+            <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.05rem" }}>💳 Yoco — card payments</h3>
+            <p style={{ margin: "0 0 1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
+              Yoco processes credit/debit card bookings. You need an approved Yoco Online Payments account.
+            </p>
+
+            <div className="field-grid">
+              <label className="full-span">
+                Yoco Secret Key
+                <span className="field-hint">Starts with <code>sk_live_</code> (or <code>sk_test_</code> for testing)</span>
+                <input type="password" autoComplete="off" value={form.secrets.yocoSecretKey} onChange={(e) => updateSection("secrets", "yocoSecretKey", e.target.value)} placeholder="sk_live_..." />
+              </label>
+              <label className="full-span">
+                Yoco Webhook Signing Secret
+                <span className="field-hint">Starts with <code>whsec_</code>. Proves that a webhook really came from Yoco.</span>
+                <input type="password" autoComplete="off" value={form.secrets.yocoWebhookSecret} onChange={(e) => updateSection("secrets", "yocoWebhookSecret", e.target.value)} placeholder="whsec_..." />
+              </label>
+            </div>
+
+            <details style={{ marginTop: "1rem", padding: "0.75rem 1rem", borderRadius: "10px", background: "white", border: "1px solid rgba(0,0,0,0.08)" }}>
+              <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>How to get your Yoco keys (≈ 5 minutes once your Yoco account is approved)</summary>
+              <ol style={{ margin: "0.75rem 0 0.25rem 1.25rem", padding: 0, fontSize: "0.85rem", lineHeight: 1.75 }}>
+                <li>
+                  <strong>Open Yoco Portal</strong> — <a href="https://portal.yoco.com" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #0c8a59)", fontWeight: 600 }}>portal.yoco.com ↗</a>
+                </li>
+                <li>
+                  If you don&apos;t have a Yoco Online Payments account yet, <a href="https://online.yoco.com/signup/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #0c8a59)", fontWeight: 600 }}>sign up here ↗</a>. Approval takes 1–2 business days and needs your SA business registration docs + ID.
+                </li>
+                <li>Inside the Yoco portal, go to <strong>Settings → Developer Tools</strong> (or directly <a href="https://portal.yoco.com/developers/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #0c8a59)", fontWeight: 600 }}>to your API keys ↗</a>).</li>
+                <li>Under <strong>Secret keys → Live mode</strong>, click <em>Reveal</em> and copy the key. It starts with <code>sk_live_</code>. Paste it into the first field above.</li>
+                <li>Still in Developer Tools, go to <strong>Webhooks → Add webhook</strong>.</li>
+                <li>
+                  Webhook URL — paste this exactly:
+                  <pre style={{ marginTop: "0.25rem", padding: "0.4rem 0.6rem", background: "rgba(0,0,0,0.05)", borderRadius: "6px", fontSize: "0.78rem", overflowX: "auto" }}>https://ukdsrndqhsatjkmxijuj.supabase.co/functions/v1/yoco-webhook</pre>
+                </li>
+                <li>Events to subscribe: <code>payment.succeeded</code>, <code>payment.failed</code>, <code>refund.succeeded</code>.</li>
+                <li>After creating the webhook, Yoco shows a <strong>Signing secret</strong> starting with <code>whsec_</code>. Copy it into the second field above.</li>
+                <li>Save this step. Live bookings won&apos;t charge cards until both keys are filled in.</li>
+              </ol>
+              <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "var(--muted)" }}>
+                Want more detail? Yoco&apos;s full developer docs: <a href="https://developer.yoco.com/online/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #0c8a59)", fontWeight: 600 }}>developer.yoco.com ↗</a>
+              </p>
+            </details>
+          </section>
+
+          {/* ─────────────────── WhatsApp Business ─────────────────── */}
+          <section style={{ marginTop: "1.25rem", padding: "1.25rem", borderRadius: "14px", border: "1px solid rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.02)" }}>
+            <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.05rem" }}>💬 WhatsApp Business API</h3>
+            <p style={{ margin: "0 0 1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
+              WhatsApp is how guests chat with your AI host and receive reminders. You need a Meta Business account and a dedicated WhatsApp-capable phone number.
+            </p>
+
+            <div className="field-grid">
+              <label className="full-span">
+                WhatsApp Access Token
+                <span className="field-hint">A long token that starts with <code>EAA...</code>. Set it to &quot;never expires&quot; when generating.</span>
+                <input type="password" autoComplete="off" value={form.secrets.waAccessToken} onChange={(e) => updateSection("secrets", "waAccessToken", e.target.value)} placeholder="EAA..." />
+              </label>
+              <label className="full-span">
+                WhatsApp Phone Number ID
+                <span className="field-hint">The 15-digit number shown on your WhatsApp Accounts → API Setup page. Not your phone number.</span>
+                <input type="text" autoComplete="off" value={form.secrets.waPhoneId} onChange={(e) => updateSection("secrets", "waPhoneId", e.target.value)} placeholder="123456789012345" />
+              </label>
+            </div>
+
+            <details style={{ marginTop: "1rem", padding: "0.75rem 1rem", borderRadius: "10px", background: "white", border: "1px solid rgba(0,0,0,0.08)" }}>
+              <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>How to get your WhatsApp credentials (≈ 15 minutes the first time)</summary>
+              <ol style={{ margin: "0.75rem 0 0.25rem 1.25rem", padding: 0, fontSize: "0.85rem", lineHeight: 1.75 }}>
+                <li>
+                  <strong>Open Meta Business Manager</strong> — <a href="https://business.facebook.com/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #0c8a59)", fontWeight: 600 }}>business.facebook.com ↗</a>. Sign in with the Facebook account that owns your business page, or create a new Meta Business account.
+                </li>
+                <li>Click the <strong>gear icon (Business Settings)</strong> in the top-right.</li>
+                <li>In the left sidebar, go to <strong>Accounts → WhatsApp Accounts → Add</strong>. Follow the flow to create a WhatsApp Business Account.</li>
+                <li>Inside that WABA, go to <strong>Phone numbers → Add phone number</strong>. Important: this number must NOT already be registered on regular WhatsApp. Verify it via SMS or call.</li>
+                <li>Go to <strong>Business Settings → Users → System Users → Add</strong>. Create a system user with role <em>Employee</em> and give it <em>Admin</em> permissions.</li>
+                <li>Click your new system user → <strong>Add Assets → WhatsApp Accounts</strong>. Select your WABA and tick <em>Full control</em>.</li>
+                <li>
+                  Click <strong>Generate token</strong>. Select:
+                  <ul style={{ margin: "0.25rem 0 0.25rem 1.25rem" }}>
+                    <li>Token expiration: <strong>Never</strong></li>
+                    <li>Scopes: tick <code>whatsapp_business_messaging</code> and <code>whatsapp_business_management</code></li>
+                  </ul>
+                </li>
+                <li>Copy the long token (starts with <code>EAA...</code>) into the Access Token field above.</li>
+                <li>
+                  Now go to <strong>WhatsApp Accounts → (your WABA) → API Setup</strong> (or directly: <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #0c8a59)", fontWeight: 600 }}>developers.facebook.com/apps ↗</a>). Under <strong>Send and receive messages</strong>, you&apos;ll see a <em>Phone number ID</em> — a 15-digit number. Copy it into the Phone Number ID field above.
+                </li>
+                <li>
+                  Configure the webhook so we receive incoming messages:
+                  <ul style={{ margin: "0.25rem 0 0.25rem 1.25rem" }}>
+                    <li>Webhook URL: <code style={{ fontSize: "0.75rem" }}>https://ukdsrndqhsatjkmxijuj.supabase.co/functions/v1/wa-webhook</code></li>
+                    <li>Verify token: anything — just share it with your BookingTours onboarding team after setup.</li>
+                    <li>Subscribe to fields: <code>messages</code>.</li>
+                  </ul>
+                </li>
+              </ol>
+              <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "var(--muted)" }}>
+                Meta&apos;s official walkthrough: <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent, #0c8a59)", fontWeight: 600 }}>developers.facebook.com/docs/whatsapp/cloud-api/get-started ↗</a>
+              </p>
+            </details>
+          </section>
+
+          <p style={{ marginTop: "1.25rem", padding: "0.75rem 1rem", borderRadius: "10px", background: "rgba(12, 138, 89, 0.08)", fontSize: "0.85rem", lineHeight: 1.6 }}>
+            <strong>Don&apos;t have these yet?</strong> Leave the fields blank. Your BookingTours team will reach out to help, and you can paste the keys in later via <em>Settings → Credentials</em> once you log in.
+          </p>
+        </div>
+      )}
+
+      {step === 9 && (
+        <div className="wizard-step-content" style={{ textAlign: "center" }}>
           {/* Honeypot — hidden from humans, visible to bots */}
           <div style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
             <label>
@@ -984,14 +918,34 @@ export function OnboardingForm({
           </div>
           <div className="submit-box">
             <p>
-              When you click the button below, we&apos;ll create your booking website, admin dashboard, and AI assistant automatically. You&apos;ll receive login details by email.
+              When you click the button below, we&apos;ll create your booking website, admin dashboard, and AI assistant automatically.
             </p>
             <button type="submit" className="primary-button" disabled={submitting || (!!form.business.confirmPassword && form.business.adminPassword !== form.business.confirmPassword)}>
               {submitting ? "Setting up your business..." : "Launch My Business →"}
             </button>
             {submitError ? <p className="error-text">{submitError}</p> : null}
           </div>
-        </section>
+        </div>
+      )}
+
+      </div>{/* end wizard-panel */}
+
+      {/* ── Wizard navigation ── */}
+      <div className="wizard-nav">
+        {step === 0 && onBack ? (
+          <button type="button" className="wizard-btn back" onClick={onBack}>
+            ← Back
+          </button>
+        ) : step > 0 ? (
+          <button type="button" className="wizard-btn back" onClick={() => goTo(step - 1)}>
+            ← Back
+          </button>
+        ) : <span />}
+        {!isLast ? (
+          <button type="button" className="wizard-btn next" onClick={() => goTo(step + 1)}>
+            Next →
+          </button>
+        ) : <span />}
       </div>
     </form>
   );

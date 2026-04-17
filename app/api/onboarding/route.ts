@@ -125,7 +125,9 @@ type OnboardingPayload = {
   };
   secrets: {
     waAccessToken: string;
+    waPhoneId: string;
     yocoSecretKey: string;
+    yocoWebhookSecret: string;
   };
   notes: string;
   faqs: FaqPayload[];
@@ -304,7 +306,9 @@ function buildLandingPageMetadata(payload: OnboardingPayload, businessId: string
     tours: payload.tours,
     protected_secrets: {
       wa_access_token: protectSecret("WA_ACCESS_TOKEN", payload.secrets.waAccessToken),
+      wa_phone_id: protectSecret("WA_PHONE_ID", payload.secrets.waPhoneId),
       yoco_secret_key: protectSecret("YOCO_SECRET_KEY", payload.secrets.yocoSecretKey),
+      yoco_webhook_secret: protectSecret("YOCO_WEBHOOK_SECRET", payload.secrets.yocoWebhookSecret),
     },
     operator_notes: payload.notes,
     remaining_manual_setup: {
@@ -538,10 +542,20 @@ export async function POST(request: Request) {
     what_to_wear: payload.operations.whatToWear?.trim() || null,
     ai_system_prompt: payload.automations?.aiPersona?.trim() || null,
     faq_json: buildFaqJson(payload),
-    subdomain: payload.business.tenantSlug?.trim()?.toLowerCase()?.replace(/[^a-z0-9-]/g, "") || null,
-    booking_site_url: payload.business.tenantSlug
-      ? `https://${payload.business.tenantSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "")}.bookingtours.co.za`
-      : null,
+    ...(() => {
+      const slug = payload.business.tenantSlug?.trim()?.toLowerCase()?.replace(/[^a-z0-9-]/g, "") || null;
+      const base = slug ? `https://${slug}.bookingtours.co.za` : null;
+      return {
+        subdomain: slug,
+        booking_site_url: base,
+        manage_bookings_url: base ? `${base}/my-bookings` : null,
+        booking_success_url: base ? `${base}/success` : null,
+        booking_cancel_url: base ? `${base}/cancelled` : null,
+        gift_voucher_url: base ? `${base}/voucher` : null,
+        voucher_success_url: base ? `${base}/voucher-success` : null,
+        waiver_url: base ? `${base}/waiver` : null,
+      };
+    })(),
   };
 
   const { data: businessRow, error: businessError } = await supabase
@@ -725,6 +739,69 @@ export async function POST(request: Request) {
     landingPageOrderId = landingPageRow?.id || null;
   }
 
+  // ── Wire live credentials into businesses.*_encrypted columns via server-side RPCs ──
+  // These RPCs use pgcrypto with SETTINGS_ENCRYPTION_KEY to store encrypted values in
+  // the dedicated columns that edge functions read from. Non-fatal: if encryption fails
+  // or keys are blank, the operator can still complete setup via Settings → Credentials.
+  const credentialWarnings: string[] = [];
+  let credentialsWired = { whatsapp: false, yoco: false };
+  const encryptionKey = process.env.SETTINGS_ENCRYPTION_KEY || "";
+
+  const waToken = payload.secrets.waAccessToken?.trim() || "";
+  const waPhoneId = payload.secrets.waPhoneId?.trim() || "";
+  const yocoSecretKey = payload.secrets.yocoSecretKey?.trim() || "";
+  const yocoWebhookSecret = payload.secrets.yocoWebhookSecret?.trim() || "";
+
+  if (waToken && waPhoneId) {
+    if (!encryptionKey || encryptionKey.length < 32) {
+      credentialWarnings.push(
+        "WhatsApp keys were provided but SETTINGS_ENCRYPTION_KEY is missing on the server, so they could not be wired live. Operator must re-enter in Settings → Credentials.",
+      );
+    } else {
+      const { error: waErr } = await supabase.rpc("set_wa_credentials", {
+        p_business_id: businessId,
+        p_key: encryptionKey,
+        p_wa_token: waToken,
+        p_wa_phone_id: waPhoneId,
+      });
+      if (waErr) {
+        console.error("ONBOARDING_WA_RPC_ERR", waErr.message);
+        credentialWarnings.push(`WhatsApp credentials could not be encrypted: ${waErr.message}. Operator must re-enter in Settings → Credentials.`);
+      } else {
+        credentialsWired.whatsapp = true;
+      }
+    }
+  } else if (waToken || waPhoneId) {
+    credentialWarnings.push(
+      "WhatsApp setup is incomplete — both Access Token AND Phone Number ID are required. Operator must finish in Settings → Credentials.",
+    );
+  }
+
+  if (yocoSecretKey && yocoWebhookSecret) {
+    if (!encryptionKey || encryptionKey.length < 32) {
+      credentialWarnings.push(
+        "Yoco keys were provided but SETTINGS_ENCRYPTION_KEY is missing on the server, so they could not be wired live. Operator must re-enter in Settings → Credentials.",
+      );
+    } else {
+      const { error: yocoErr } = await supabase.rpc("set_yoco_credentials", {
+        p_business_id: businessId,
+        p_key: encryptionKey,
+        p_yoco_secret_key: yocoSecretKey,
+        p_yoco_webhook_secret: yocoWebhookSecret,
+      });
+      if (yocoErr) {
+        console.error("ONBOARDING_YOCO_RPC_ERR", yocoErr.message);
+        credentialWarnings.push(`Yoco credentials could not be encrypted: ${yocoErr.message}. Operator must re-enter in Settings → Credentials.`);
+      } else {
+        credentialsWired.yoco = true;
+      }
+    }
+  } else if (yocoSecretKey || yocoWebhookSecret) {
+    credentialWarnings.push(
+      "Yoco setup is incomplete — both Secret Key AND Webhook Signing Secret are required. Operator must finish in Settings → Credentials.",
+    );
+  }
+
   const nextSteps = [
     "Log in to your new admin dashboard using your chosen password.",
     "Verify your tour schedules and pricing on the live booking site.",
@@ -734,36 +811,51 @@ export async function POST(request: Request) {
     "Perform a test booking to see exactly what your guests will experience.",
   ];
 
-  // ── Notify super admin of new onboarding ──
+  // ── Notify super admin of new onboarding & send welcome email to client ──
+  let welcomeEmailSent = false;
+  let adminLoginUrl = "";
   try {
     const RESEND_KEY = process.env.RESEND_API_KEY;
     const ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || "gidslang89@gmail.com";
-    if (RESEND_KEY) {
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: "BookingTours <noreply@bookingtours.co.za>",
-          to: [ADMIN_EMAIL],
-          subject: `New client onboarded: ${payload.business.businessName.trim()}`,
-          html: [
-            `<h2>New Client: ${payload.business.businessName.trim()}</h2>`,
-            `<p><strong>Admin:</strong> ${payload.business.ownerName} (${payload.business.ownerEmail})</p>`,
-            `<p><strong>Phone:</strong> ${payload.business.ownerPhone}</p>`,
-            `<p><strong>Tours:</strong> ${toursCreated} configured, ${slotsCreated} slots generated</p>`,
-            `<p><strong>Subdomain:</strong> ${normalizeSlug(payload.business.tenantSlug || payload.business.businessName)}.bookingtours.co.za</p>`,
-            `<p><strong>Landing page requested:</strong> ${payload.billing?.landingPageRequested ? "Yes" : "No"}</p>`,
-            `<br><p>Review in <a href="${process.env.ADMIN_DASHBOARD_URL || "https://admin-tawny-delta-92.vercel.app"}/super-admin">Super Admin Dashboard</a></p>`,
-          ].join(""),
-        }),
-      });
+    // ADMIN_DASHBOARD_URL is REQUIRED — no hardcoded staging fallback (orphan staging URLs cause user confusion)
+    const ADMIN_URL = (process.env.ADMIN_DASHBOARD_URL || "").trim().replace(/\/$/, "");
+    adminLoginUrl = ADMIN_URL;
+    if (!ADMIN_URL) {
+      console.error("ADMIN_DASHBOARD_URL env var missing — cannot send welcome email with valid login link");
     }
-    // ── Welcome email to the business owner ──
-    if (RESEND_KEY) {
+
+    if (RESEND_KEY && ADMIN_URL) {
+      // Internal notification (non-blocking — admin notification only)
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: "BookingTours <noreply@bookingtours.co.za>",
+            to: [ADMIN_EMAIL],
+            subject: `New client onboarded: ${payload.business.businessName.trim()}`,
+            html: [
+              `<h2>New Client: ${payload.business.businessName.trim()}</h2>`,
+              `<p><strong>Admin:</strong> ${payload.business.ownerName} (${payload.business.ownerEmail})</p>`,
+              `<p><strong>Phone:</strong> ${payload.business.ownerPhone}</p>`,
+              `<p><strong>Tours:</strong> ${toursCreated} configured, ${slotsCreated} slots generated</p>`,
+              `<p><strong>Subdomain:</strong> ${normalizeSlug(payload.business.tenantSlug || payload.business.businessName)}.bookingtours.co.za</p>`,
+              `<p><strong>Landing page requested:</strong> ${payload.billing?.landingPageRequested ? "Yes" : "No"}</p>`,
+              `<br><p>Review in <a href="${ADMIN_URL}/super-admin">Super Admin Dashboard</a></p>`,
+            ].join(""),
+          }),
+        });
+      } catch (adminNotifyErr) {
+        console.error("ADMIN_NOTIFY_ERR (non-blocking):", adminNotifyErr);
+      }
+    }
+
+    // ── Welcome email to the business owner — BLOCKING (this is the user's only login link) ──
+    if (RESEND_KEY && ADMIN_URL) {
       const slug = normalizeSlug(payload.business.tenantSlug || payload.business.businessName);
-      const adminUrl = process.env.ADMIN_DASHBOARD_URL || "https://admin-tawny-delta-92.vercel.app";
+      const adminUrl = ADMIN_URL;
       const bookingUrl = `https://${slug}.bookingtours.co.za`;
-      await fetch("https://api.resend.com/emails", {
+      const welcomeRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -797,9 +889,16 @@ export async function POST(request: Request) {
           ].join(""),
         }),
       });
+      if (welcomeRes.ok) {
+        welcomeEmailSent = true;
+      } else {
+        const errBody = await welcomeRes.text().catch(() => "");
+        console.error("WELCOME_EMAIL_RESEND_FAIL status=" + welcomeRes.status + " body=" + errBody);
+      }
     }
   } catch (notifyErr) {
-    console.error("NOTIFY_ERR (non-blocking):", notifyErr);
+    console.error("NOTIFY_ERR:", notifyErr);
+    // Continue — onboarding succeeded, but surface an emailDelivered: false flag in the response
   }
 
   return NextResponse.json({
@@ -814,5 +913,9 @@ export async function POST(request: Request) {
     tenantSlug: normalizeSlug(payload.business.tenantSlug || payload.business.businessName),
     knowledgeBasePreview: buildKnowledgeBase(payload),
     nextSteps,
+    adminLoginUrl,
+    welcomeEmailSent,
+    credentialsWired,
+    credentialWarnings,
   });
 }

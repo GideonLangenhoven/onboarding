@@ -40,6 +40,10 @@ export type SubmitResult = {
   businessName: string;
   tenantSlug?: string;
   nextSteps: string[];
+  adminLoginUrl?: string;
+  welcomeEmailSent?: boolean;
+  credentialsWired?: { whatsapp: boolean; yoco: boolean };
+  credentialWarnings?: string[];
 };
 
 export type FormState = {
@@ -125,7 +129,9 @@ export type FormState = {
   };
   secrets: {
     waAccessToken: string;
+    waPhoneId: string;
     yocoSecretKey: string;
+    yocoWebhookSecret: string;
   };
   notes: string;
   faqs: FaqDraft[];
