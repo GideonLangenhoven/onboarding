@@ -177,6 +177,64 @@ export function OnboardingForm({
         <div className="section-header compact" style={{ textAlign: "center", marginBottom: "0.75rem" }}>
           <p className="eyebrow">{WIZARD_STEPS[step].eyebrow}</p>
           <h2>{WIZARD_STEPS[step].title}</h2>
+          {/* Onboarding Ownership Guidance Banner */}
+          {(() => {
+            if (step === 8) {
+              return (
+                <div style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "10px",
+                  background: "rgba(197, 160, 89, 0.09)",
+                  border: "1px solid rgba(197, 160, 89, 0.3)",
+                  color: "#926815",
+                  fontSize: "0.85rem",
+                  textAlign: "left",
+                  margin: "0.5rem auto 1.5rem",
+                  maxWidth: "680px",
+                  lineHeight: "1.5"
+                }}>
+                  <strong>⚙️ Onboarder Task (Recommended to Skip for Client)</strong>: Connecting Yoco keys and Meta APIs involves technical configuration. If you do not have these ready, simply leave them blank and click <strong>Next</strong>. Your onboarding manager will configure these for you during setup.
+                </div>
+              );
+            }
+            if (step === 6) {
+              return (
+                <div style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "10px",
+                  background: "rgba(59, 130, 246, 0.08)",
+                  border: "1px solid rgba(59, 130, 246, 0.2)",
+                  color: "#1e3a8a",
+                  fontSize: "0.85rem",
+                  textAlign: "left",
+                  margin: "0.5rem auto 1.5rem",
+                  maxWidth: "680px",
+                  lineHeight: "1.5"
+                }}>
+                  <strong>💬 Client Task (Default Provided)</strong>: Set your AI Host&apos;s tone and rules, or leave our default friendly persona as-is.
+                </div>
+              );
+            }
+            if (step === 9) {
+              return null; // Launch step doesn't need guidance
+            }
+            return (
+              <div style={{
+                padding: "0.75rem 1rem",
+                borderRadius: "10px",
+                background: "rgba(12, 138, 89, 0.08)",
+                border: "1px solid rgba(12, 138, 89, 0.2)",
+                color: "#0c5a3b",
+                fontSize: "0.85rem",
+                textAlign: "left",
+                margin: "0.5rem auto 1.5rem",
+                maxWidth: "680px",
+                lineHeight: "1.5"
+              }}>
+                <strong>📝 Client Task</strong>: Please fill in as many details as possible to automatically configure your new booking portal.
+              </div>
+            );
+          })()}
         </div>
 
       {step === 0 && (
@@ -800,7 +858,7 @@ export function OnboardingForm({
 
           {/* ─────────────────── Yoco (Payments) ─────────────────── */}
           <section style={{ marginTop: "1.5rem", padding: "1.25rem", borderRadius: "14px", border: "1px solid rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.02)" }}>
-            <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.05rem" }}>💳 Yoco — card payments</h3>
+            <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.5rem" }}><svg viewBox="0 0 256 256" width="18" height="18" fill="var(--green)" aria-hidden="true"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16V88H32V64Zm0,128H32V104H224v88Zm-16-24a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h32A8,8,0,0,1,208,168Zm-64,0a8,8,0,0,1-8,8H120a8,8,0,0,1,0-16h16A8,8,0,0,1,144,168Z" /></svg>Yoco — card payments</h3>
             <p style={{ margin: "0 0 1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
               Yoco processes credit/debit card bookings. You need an approved Yoco Online Payments account.
             </p>
@@ -846,7 +904,7 @@ export function OnboardingForm({
 
           {/* ─────────────────── WhatsApp Business ─────────────────── */}
           <section style={{ marginTop: "1.25rem", padding: "1.25rem", borderRadius: "14px", border: "1px solid rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.02)" }}>
-            <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.05rem" }}>💬 WhatsApp Business API</h3>
+            <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.5rem" }}><svg viewBox="0 0 256 256" width="18" height="18" fill="var(--green)" aria-hidden="true"><path d="M132.08,206.37,128,204l-4.08,2.37A87.92,87.92,0,0,1,40,128,88,88,0,1,1,132.08,206.37ZM128,24A104,104,0,0,0,36.18,176.88L24.83,210.93a16,16,0,0,0,20.24,20.24l34.05-11.35A104,104,0,1,0,128,24Zm-24,92H88a8,8,0,0,0,0,16h16a8,8,0,0,0,0-16Zm64,0H152a8,8,0,0,0,0,16h16a8,8,0,0,0,0-16Z" /></svg>WhatsApp Business API</h3>
             <p style={{ margin: "0 0 1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
               WhatsApp is how guests chat with your AI host and receive reminders. You need a Meta Business account and a dedicated WhatsApp-capable phone number.
             </p>
