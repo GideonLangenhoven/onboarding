@@ -4,34 +4,23 @@
 
 When a client completes the ActivityHub onboarding form and submits it:
 
-- A `businesses` row is created using the live fields currently present in the ActivityHub Supabase project.
+- The request is rejected unless it includes the correct onboarding invite code.
+- A `businesses` row is created using the live fields currently present in the CapeKayak Supabase project.
+- Tenant secrets are stored through `set_app_settings_encryption_key` and `set_business_credentials` when the client supplies WhatsApp or Yoco credentials.
 - A `MAIN_ADMIN` user is created in `admin_users` using the password the client entered in the onboarding flow.
 - A `policies` row is created with cancellation, loyalty, and group discount defaults.
-- Client-specific SOPs and operational playbooks are captured in onboarding metadata for the new business only.
-- The client defines a tenant slug that can later be used for domain-or-slug tenant resolution.
 - One or more `tours` are created.
 - Initial `slots` are generated from the tour date ranges, weekdays, and departure times in the form.
 - An active `subscriptions` row is created for the selected plan.
-- A `landing_page_orders` row is created when requested, and its `metadata` stores the full onboarding payload so the raw client answers remain available in SQL even if the current schema has no dedicated columns yet.
-- `WA_ACCESS_TOKEN` and `YOCO_SECRET_KEY` can be captured in the form and stored in metadata as protected values or placeholders for later tenant-specific runtime wiring.
-- A manual SQL fallback script can be downloaded from the success state if an automated provisioning request cannot be completed in production.
-
-## Isolation rules
-
-- The onboarding route is intended to create a brand new tenant only.
-- It refuses to proceed if the business name, operator email, or admin email already match an existing tenant record.
-- It does not update any existing `businesses`, `admin_users`, `tours`, `slots`, `policies`, `subscriptions`, or `landing_page_orders` rows.
-- If provisioning fails partway through, it performs a scoped cleanup of the newly created `business_id` so the request does not leave partial data behind.
-- Existing business data stays isolated. New client content should be supplied through the onboarding form and stored against the new tenant only.
+- A `landing_page_orders` row is created when requested, and its `metadata` stores the non-secret onboarding payload so the raw client answers remain available in SQL even if the current schema has no dedicated columns yet.
+- If provisioning fails after validation, the UI exposes a raw SQL fallback script for manual recovery. That script starts with `CREATE EXTENSION IF NOT EXISTS pgcrypto;`.
 
 ## What the onboarding app does not fully automate yet
 
-These are rollout tasks in the shared platform, not changes performed by the onboarding form itself:
+These are platform limitations in the current CapeKayak and booking codebases, not gaps in the form itself:
 
-- WhatsApp Cloud API credentials still need to be assigned to the correct client runtime.
-- Yoco keys still need to be assigned to the correct client runtime.
-- Resend sender configuration still needs to be assigned to the correct client runtime.
-- The shared public booking site and chat functions still need full domain-or-slug tenant resolution and SQL-driven business loading before multiple businesses should share one runtime.
+- Resend sender configuration is still deployment-level.
+- The public booking site and chat functions are not yet fully tenant-aware. Some flows still assume a single business or contain Cape Kayak specific text.
 
 ## Exact operator workflow for a new client
 
@@ -39,6 +28,7 @@ These are rollout tasks in the shared platform, not changes performed by the onb
 2. Wait for the client to complete the form and submit it.
 3. Open Supabase and verify:
    - `businesses` row created
+   - encrypted credentials saved on `businesses` if supplied
    - `admin_users` row created with `MAIN_ADMIN`
    - `policies` row created
    - `tours` rows created
@@ -46,34 +36,42 @@ These are rollout tasks in the shared platform, not changes performed by the onb
    - `subscriptions` row created
    - `landing_page_orders` row created, if requested
 4. Open the new `landing_page_orders.metadata` JSON.
-   - This contains the full onboarding dossier, including the tenant slug, FAQs, operations, brand settings, tour notes, protected secret placeholders or encrypted values, and manual setup reminders.
-5. Configure deployment secrets for the client:
-   - `WA_ACCESS_TOKEN`
-   - `WA_PHONE_NUMBER_ID`
+   - This contains the onboarding dossier, including FAQs, operations, brand settings, tenant slug, tour notes, and manual setup reminders.
+   - Admin passwords, invite codes, WhatsApp tokens, and Yoco secrets are intentionally excluded from metadata.
+5. If the submission failed and you need the fallback script:
+   - copy the SQL from the onboarding UI
+   - verify the script begins with `CREATE EXTENSION IF NOT EXISTS pgcrypto;`
+   - review existing rows first to avoid duplicate businesses or admins
+   - run any credential RPC calls only in a secure service-role session
+6. Configure remaining deployment secrets for the target environment:
    - `WA_VERIFY_TOKEN`
-   - `YOCO_SECRET_KEY`
    - `RESEND_API_KEY`
    - `EMAIL_FROM`
-6. Point the correct booking/admin deployment at the client business.
-   - Use the tenant slug and final domain mapping for that client only.
-7. If the automated POST fails in production, use the downloaded fallback SQL script from the success or error state.
-   - Review the script first. It includes duplicate guards and only inserts a brand new tenant.
-8. Verify the client can sign in with the admin email and password from the onboarding form.
-9. Run one end-to-end test:
+7. Point the correct booking/admin deployment at the client business.
+   - Today this still requires deployment-specific configuration or additional tenant-resolution work.
+8. Review and update any client-specific copy still hardcoded in:
+   - `Desktop/CapeKayak/capekayak/supabase/functions/web-chat/index.ts`
+   - `Desktop/CapeKayak/capekayak/supabase/functions/wa-webhook/index.ts`
+   - `Desktop/booking/app/components/ThemeProvider.tsx`
+   - `Desktop/booking/app/layout.tsx`
+9. Verify the client can sign in with the confirmed admin email and password from the onboarding form.
+10. Run one end-to-end test:
    - create booking
    - pay booking
    - receive confirmation
    - test reminder flow
    - test cancellation or reschedule path
-10. Only then mark the client live.
+11. Only then mark the client live.
 
 ## Required environment variables for the onboarding app
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `SETTINGS_ENCRYPTION_KEY`
+- `ONBOARDING_INVITE_CODE`
 
-These credentials should be configured on the onboarding deployment only. They are not part of the existing core or booking app builds.
+Without `SUPABASE_SERVICE_ROLE_KEY`, `SETTINGS_ENCRYPTION_KEY`, and `ONBOARDING_INVITE_CODE`, the onboarding UI still renders, but secure automated client creation will fail.
 
 ## Notes about the current schema
 
@@ -100,12 +98,12 @@ The live `businesses` table currently exposes these fields:
 - `terms_conditions`
 - `timezone`
 
-The onboarding app maps directly to those fields and puts everything else into `landing_page_orders.metadata` so you still have the complete client record in SQL.
+The onboarding app maps directly to those fields and puts the remaining non-secret data into `landing_page_orders.metadata` so you still have the complete client record in SQL.
 
 ## Recommended next refactor
 
-These should be treated as mandatory multi-tenant hardening work before multiple businesses share the same public booking and automation stack:
+If you want this to become a true multi-client self-service platform, the next engineering step should be:
 
 1. Add tenant resolution by domain or slug in the public booking app.
-2. Move WhatsApp, chat prompt, and payment credentials into per-business tables or encrypted secrets storage.
-3. Replace remaining hardcoded text in the edge functions with business-specific data loaded from SQL.
+2. Finish tenant resolution by slug or domain in the booking app and admin app.
+3. Replace remaining Cape Kayak hardcoded text in the edge functions with business-specific data loaded from SQL.

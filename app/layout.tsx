@@ -1,28 +1,28 @@
 import type { Metadata } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { Space_Grotesk, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-sans",
 });
 
-const fraunces = Fraunces({
+const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
   variable: "--font-serif",
 });
 
 export const metadata: Metadata = {
-  title: "BookingTours — Set Up Your Adventure Business",
+  title: "ActivityHub Onboarding",
   description:
-    "The complete booking platform for adventure and tourism businesses. Set up your booking website, AI assistant, and admin dashboard in minutes.",
+    "Client-facing onboarding flow that seeds a new business into the CapeKayak Supabase stack.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${fraunces.variable}`}
+      className={`${spaceGrotesk.variable} ${sourceSerif.variable}`}
       suppressHydrationWarning
     >
       <body>{children}</body>
