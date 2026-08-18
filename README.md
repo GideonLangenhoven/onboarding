@@ -1,23 +1,35 @@
-# ActivityHub Onboarding
+# BookingTours onboarding wizard
 
-Client-facing onboarding flow for new operators signing onto the ActivityHub stack.
+The guided setup a new operator fills in, one question per screen, while a support agent walks them
+through it on a call. It lives at `onboarding.bookingtours.co.za` and is opened with an invite token:
 
-## What it does
+```
+https://onboarding.bookingtours.co.za?token=<uuid>
+```
 
-- Explains the platform, features, onboarding process, and rollout expectations to the client.
-- Collects business, operations, policy, branding, FAQ, tour, tenant slug, and protected credential placeholder data in a guided form.
-- Creates the core SQL records for a new client when the form is submitted.
-- Generates a fallback SQL migration script from the same form data for manual execution if automated provisioning is unavailable.
+## Zero secrets
 
-## What it creates
+This app has no server routes and no privileged credentials. Everything goes through one token-gated
+edge function, `onboarding-wizard`, called with the Supabase anon key. The only environment
+variables are `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. See `.env.example`.
 
-- `businesses`
-- `admin_users`
-- `policies`
-- `tours`
-- `slots`
-- `subscriptions`
-- `landing_page_orders` with the full onboarding payload in `metadata`
+If you are about to add a service-role key, an encryption key or a mail provider key here, put it in
+the edge function instead.
+
+## Shape of the code
+
+```
+app/page.tsx                  reads ?token, hands off to Gate
+app/components/Gate.tsx       validates the token, then the wizard or a dead-end screen
+app/components/Wizard.tsx     step machine, progress, autosave, error surface
+app/components/steps/*.tsx    one thin component per question screen
+app/lib/api.ts                supabase client and callWizard()
+app/lib/steps.ts              step definitions and per-step validation
+app/lib/onboarding.ts         shared types, timezones, slot-count preview
+```
+
+Answers autosave when the client advances a screen, and on a debounce while they type. The resume
+position comes from `localStorage` first, then from the server's `wizard_step`, never from the URL.
 
 ## Run locally
 
@@ -26,13 +38,6 @@ npm ci
 npm run dev
 ```
 
-## Required environment variables
-
-See `.env.example`.
-
-This onboarding deployment uses server-side Supabase credentials from `.env.example` to provision new client rows. That provisioning path is isolated to the onboarding app and does not modify the existing ActivityHub or booking runtimes.
-
 ## Operator handoff
 
-Read [`docs/NEW_CLIENT_SETUP.md`](./docs/NEW_CLIENT_SETUP.md) after each submission. It explains the remaining steps for WhatsApp, payment, email, multi-tenant rollout, and live QA.
- 
+Read [`docs/NEW_CLIENT_SETUP.md`](./docs/NEW_CLIENT_SETUP.md) before running a setup call.
