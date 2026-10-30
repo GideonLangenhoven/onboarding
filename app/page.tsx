@@ -1,4 +1,4 @@
-import Gate, { DeadEnd } from "./components/Gate";
+import Gate, { Landing } from "./components/Gate";
 
 export default async function Page({
   searchParams,
@@ -7,9 +7,7 @@ export default async function Page({
 }) {
   const { token } = await searchParams;
 
-  if (!token) {
-    return <DeadEnd reason="There is no setup code in this address." />;
-  }
+  if (!token) return <Landing />;
 
   return <Gate token={token} />;
 }

@@ -1,20 +1,20 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { Geist, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-serif" });
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const display = Instrument_Sans({ subsets: ["latin"], variable: "--font-display" });
 
 export const metadata: Metadata = {
-  title: "Set up your booking site",
-  description: "Get your tours online and taking bookings, one question at a time.",
+  title: "Set up your booking site · BookingTours",
+  description: "Get your tours online and taking bookings in about fifteen minutes.",
   robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`${geist.variable} ${display.variable}`}>
       <body>{children}</body>
     </html>
   );

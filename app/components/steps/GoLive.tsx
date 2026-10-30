@@ -1,103 +1,147 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { callWizard } from "../../lib/api";
-import type { Readiness, StepContext } from "../../lib/onboarding";
+import { countSlots, duration, money, type Readiness, type StepContext } from "../../lib/onboarding";
+import { describeTier, readTiers } from "./Refunds";
+import { readFaqs } from "./Faqs";
 
-const LABELS: Record<string, string> = {
-  subscription: "Your account is active",
-  policies: "Your cancellation policy is set",
-  admin_email_sent: "Your dashboard login has been emailed to you",
-  yoco: "Yoco is connected",
-  webhook: "Payments confirm bookings automatically",
-  whatsapp: "WhatsApp is connected",
-  tours: "Your tours are loaded",
-  slots: "Your departures are on the calendar",
-  trading: "Your booking site is open for business",
-};
+function Row({
+  label,
+  value,
+  warn,
+  onEdit,
+}: {
+  label: string;
+  value: ReactNode;
+  warn?: string;
+  onEdit: () => void;
+}) {
+  return (
+    <li className="flex items-start gap-4 py-3.5">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
+        <div className="mt-0.5 text-sm">{value}</div>
+        {warn && <p className="mt-1 text-[13px] text-warm">{warn}</p>}
+      </div>
+      <button type="button" className="shrink-0 text-sm font-medium text-accent hover:underline" onClick={onEdit}>
+        Edit
+      </button>
+    </li>
+  );
+}
 
-export function GoLive({ token, goNext }: StepContext) {
-  const [readiness, setReadiness] = useState<Readiness | null>(null);
-  const [busy, setBusy] = useState(true);
+export function Review({ token, values, tours, businessName, bookingSiteUrl, goTo, markLive }: StepContext) {
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const run = useCallback(async () => {
+  const named = tours.filter((t) => t.name.trim());
+  const departures = named.reduce((sum, t) => sum + (t.slot_count || 0) + countSlots(t.ranges), 0);
+  const faqs = readFaqs(values.faq_json).filter((f) => f.question.trim() && f.answer.trim());
+  const hasLogo = /^(https?:|data:)/.test(values.logo_url || "");
+
+  async function goLive() {
     setBusy(true);
     setError("");
     try {
       const data = await callWizard<{ readiness: Readiness }>("go-live", token);
-      setReadiness(data.readiness || {});
+      markLive(data.readiness || {});
     } catch (caught) {
       setError((caught as Error).message);
-    } finally {
       setBusy(false);
     }
-  }, [token]);
-
-  useEffect(() => {
-    // Arriving on this screen is what triggers go-live, so the call belongs here.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void run();
-  }, [run]);
-
-  const rows = Object.entries(LABELS).filter(([key]) => readiness && key in readiness);
-  const outstanding = rows.filter(([key]) => !readiness?.[key]);
+  }
 
   return (
-    <div className="space-y-5">
-      {busy && !readiness && <p className="hint">Turning everything on, one moment.</p>}
+    <div className="space-y-6">
+      <ul className="divide-y divide-line rounded-xl border border-line px-4">
+        <Row
+          label="Business"
+          value={
+            <>
+              <strong>{businessName}</strong>
+              {values.business_address ? ` · ${values.business_address}` : ""}
+              <span className="block text-muted">Bookings go to {values.operator_email || "not set"}</span>
+            </>
+          }
+          onEdit={() => goTo("business")}
+        />
+        <Row
+          label="Brand"
+          value={
+            <span className="flex items-center gap-2">
+              {[values.color_main, values.color_secondary, values.color_cta].filter(Boolean).map((c, i) => (
+                <span key={i} className="h-4 w-4 rounded-full ring-1 ring-line" style={{ background: c }} />
+              ))}
+              <span className="truncate">{values.hero_title || businessName}</span>
+            </span>
+          }
+          warn={hasLogo ? undefined : "No logo yet. Your first letter is used instead."}
+          onEdit={() => goTo("look")}
+        />
+        <Row
+          label="Meeting point"
+          value={values.meeting_point || <span className="text-muted">Not set</span>}
+          warn={values.meeting_point ? undefined : "Guests won't know where to go. Worth adding."}
+          onEdit={() => goTo("meeting")}
+        />
+        <Row
+          label="Cancellations"
+          value={readTiers(values.refund_policy_tiers).map(describeTier).join(" · ")}
+          onEdit={() => goTo("refunds")}
+        />
+        <Row
+          label="Tours"
+          value={
+            named.length ? (
+              <ul className="space-y-0.5">
+                {named.map((t, i) => (
+                  <li key={t.id || i}>
+                    {t.name}{" "}
+                    <span className="text-muted">
+                      · {money(values.currency, t.base_price_per_person)} · {duration(t.duration_minutes)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-muted">None yet</span>
+            )
+          }
+          warn={
+            !named.length
+              ? "Add a tour so guests have something to book."
+              : departures === 0
+                ? "No departures on the calendar, so nothing can be booked yet."
+                : undefined
+          }
+          onEdit={() => goTo("tours")}
+        />
+        <Row
+          label="AI assistant"
+          value={`${faqs.length} answered question${faqs.length === 1 ? "" : "s"}`}
+          onEdit={() => goTo("assistant")}
+        />
+      </ul>
+
+      <div className="rounded-xl bg-accent p-5 text-white">
+        <p className="text-sm text-white/75">Your booking site will be live at</p>
+        <p className="mt-0.5 break-all font-mono text-[15px]">{bookingSiteUrl || "your BookingTours address"}</p>
+        <button
+          type="button"
+          className="btn mt-4 w-full bg-white text-accent-dark hover:bg-mint sm:w-auto"
+          onClick={() => void goLive()}
+          disabled={busy || !named.length}
+        >
+          {busy ? "Switching everything on" : "Go live"}
+        </button>
+        {!named.length && <p className="mt-2 text-sm text-white/80">Add at least one tour first.</p>}
+      </div>
 
       {error && (
-        <div className="space-y-3">
-          <p className="text-sm text-danger" role="alert">
-            {error}
-          </p>
-          <button type="button" className="btn-ghost" onClick={() => void run()}>
-            Try again
-          </button>
-        </div>
-      )}
-
-      {readiness && (
-        <>
-          <ul className="space-y-2">
-            {rows.map(([key, label]) => {
-              const done = Boolean(readiness[key]);
-              return (
-                <li key={key} className="flex items-start gap-3">
-                  <span
-                    aria-hidden="true"
-                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      done ? "bg-accent text-white" : "border border-line text-muted"
-                    }`}
-                  >
-                    {done ? "y" : ""}
-                  </span>
-                  <span className={done ? "" : "text-muted"}>
-                    {label}
-                    <span className="sr-only">{done ? ", done" : ", still to come"}</span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-
-          {outstanding.length > 0 && (
-            <p className="hint">
-              The items without a tick are not in your hands and they do not stop you taking
-              bookings. We finish them off from our side.
-            </p>
-          )}
-
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className="btn-primary" onClick={goNext}>
-              See my booking site
-            </button>
-            <button type="button" className="btn-ghost" onClick={() => void run()} disabled={busy}>
-              {busy ? "Checking" : "Check again"}
-            </button>
-          </div>
-        </>
+        <p className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );
@@ -109,18 +153,38 @@ type TestBooking = {
   customer_name: string;
   total_amount: number;
   status: string;
-  created_at: string;
 };
 
-export function Finish({ token, bookingSiteUrl, businessName, values }: StepContext) {
+function Todo({ done, title, children }: { done: boolean; title: string; children?: ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span
+        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
+          done ? "bg-accent text-white" : "border-2 border-line-strong bg-white"
+        }`}
+        aria-hidden="true"
+      >
+        {done ? "✓" : ""}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className={`font-medium ${done ? "text-muted line-through decoration-line-strong" : ""}`}>
+          {title}
+          <span className="sr-only">{done ? ", done" : ", to do"}</span>
+        </p>
+        {children && <div className="hint mt-0.5">{children}</div>}
+      </div>
+    </li>
+  );
+}
+
+export function Finish({ token, bookingSiteUrl, adminUrl, businessName, values, creds, readiness }: StepContext) {
   const [booking, setBooking] = useState<TestBooking | null>(null);
-  const [completed, setCompleted] = useState(false);
+  const [copied, setCopied] = useState(false);
   const done = useRef(false);
 
   useEffect(() => {
     if (booking) return;
     let cancelled = false;
-
     const timer = setInterval(async () => {
       try {
         const data = await callWizard<{ found: boolean; booking: TestBooking | null }>(
@@ -131,8 +195,7 @@ export function Finish({ token, bookingSiteUrl, businessName, values }: StepCont
       } catch {
         // Keep polling quietly. A blip here should not alarm anyone.
       }
-    }, 5000);
-
+    }, 6000);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -142,73 +205,104 @@ export function Finish({ token, bookingSiteUrl, businessName, values }: StepCont
   useEffect(() => {
     if (!booking || done.current) return;
     done.current = true;
-    callWizard("complete", token)
-      .then(() => setCompleted(true))
-      .catch(() => setCompleted(true)); // Already completed is still completed.
+    // Already completed is still completed.
+    callWizard("complete", token).catch(() => {});
   }, [booking, token]);
 
-  const currency = values.currency || "ZAR";
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(bookingSiteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked: the address is on screen to select by hand.
+    }
+  }
+
+  const email = values.operator_email;
+  const yocoDone = Boolean(readiness?.yoco ?? creds.yoco_configured);
+  const waConnected = (readiness?.whatsapp ?? creds.wa_status) === "connected";
 
   return (
-    <div className="space-y-6">
-      <p>
-        <strong>{businessName}</strong> is live. This is your booking site, and anyone in the world
-        can use it right now.
+    <div className="space-y-7">
+      <p className="text-[17px]">
+        <strong>{businessName}</strong> is open for bookings. Here&apos;s everything you need.
       </p>
 
-      {bookingSiteUrl ? (
-        <a
-          href={bookingSiteUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="btn-primary w-full text-center sm:w-auto"
-        >
-          Open my booking site
-        </a>
-      ) : (
-        <p className="hint">Your booking site address is on its way to you by email.</p>
-      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col rounded-xl border border-line p-5">
+          <p className="eyebrow">Your booking site</p>
+          <p className="mt-2 break-all font-mono text-sm">{bookingSiteUrl.replace(/^https?:\/\//, "") || "Coming by email"}</p>
+          <p className="hint mt-1 flex-1">Share this link anywhere guests find you.</p>
+          {bookingSiteUrl && (
+            <div className="mt-4 flex gap-2">
+              <a href={bookingSiteUrl} target="_blank" rel="noreferrer" className="btn-ghost flex-1">
+                Open
+              </a>
+              <button type="button" className="btn-ghost flex-1" onClick={() => void copy()}>
+                {copied ? "Copied" : "Copy link"}
+              </button>
+            </div>
+          )}
+        </div>
 
-      {!booking ? (
-        <div className="rounded-xl border border-line bg-white/70 p-5">
-          <p className="font-semibold">Make a real booking now, while we are still on the call</p>
-          <p className="hint mt-1">
-            Book yourself onto one of your own tours and pay for it. It is the only way to know the
-            whole thing works. We are watching for it and it shows up here the moment it lands.
+        <div className="flex flex-col rounded-xl border border-accent/30 bg-mint/40 p-5">
+          <p className="eyebrow">Your dashboard</p>
+          <p className="mt-2 break-all font-mono text-sm">{adminUrl.replace(/^https?:\/\//, "")}</p>
+          <p className="hint mt-1 flex-1">
+            Bookings, calendar, payments and settings. Sign in with {email || "your email"}.
           </p>
-          <p className="hint mt-3" aria-live="polite">
-            Waiting for your first booking.
-          </p>
+          <a href={adminUrl} target="_blank" rel="noreferrer" className="btn-primary mt-4">
+            Open my dashboard
+          </a>
         </div>
-      ) : (
-        <div className="rounded-xl border border-accent bg-accent/5 p-5" aria-live="polite">
-          <p className="font-serif text-xl">Your first booking just came in.</p>
-          <dl className="mt-3 space-y-1 text-sm">
-            <div className="flex gap-2">
-              <dt className="text-muted">Reference</dt>
-              <dd className="font-semibold">{booking.ref_code}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="text-muted">Guest</dt>
-              <dd className="font-semibold">{booking.customer_name}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="text-muted">Amount</dt>
-              <dd className="font-semibold">
-                {currency} {Number(booking.total_amount).toFixed(2)}
-              </dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="text-muted">Status</dt>
-              <dd className="font-semibold">{booking.status}</dd>
-            </div>
-          </dl>
-          <p className="hint mt-4">
-            That booking is in your dashboard, the guest has an email, and your calendar has one
-            fewer seat. You are open. {completed ? "We have closed off your setup." : ""}
-          </p>
-        </div>
-      )}
+      </div>
+
+      <div>
+        <p className="field mb-3">Three things to finish today</p>
+        <ol className="space-y-4">
+          <Todo done={false} title="Set your dashboard password">
+            {readiness?.admin_email_sent
+              ? `We've just emailed ${email || "you"} a link. It works for 48 hours.`
+              : `Check ${email || "your inbox"} for your password link. Can't find it? Ask your BookingTours contact to resend it.`}
+          </Todo>
+          <Todo done={yocoDone} title="Connect Yoco to get paid">
+            {yocoDone ? (
+              "Payments go straight to your Yoco account."
+            ) : (
+              <>
+                In your dashboard, open{" "}
+                <a className="font-medium text-accent hover:underline" href={`${adminUrl}/settings`} target="_blank" rel="noreferrer">
+                  Settings
+                </a>{" "}
+                and paste your Yoco secret key. Find it in Yoco under Sell online, then Payment gateway.
+              </>
+            )}
+          </Todo>
+          <Todo done={Boolean(booking)} title="Make a test booking">
+            {booking ? (
+              <>
+                It worked. {booking.ref_code} for {booking.customer_name},{" "}
+                {money(values.currency, booking.total_amount) || booking.total_amount}. You&apos;re in business.
+              </>
+            ) : (
+              <>
+                Book yourself onto one of your tours and pay. It&apos;s the only way to know the whole thing
+                works.{" "}
+                <span className="inline-flex items-center gap-1.5 text-accent" aria-live="polite">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> Watching for it
+                </span>
+              </>
+            )}
+          </Todo>
+        </ol>
+      </div>
+
+      <p className="rounded-lg bg-bg px-4 py-3 text-sm text-muted">
+        {waConnected
+          ? "WhatsApp is connected. Your assistant answers guests there too."
+          : "WhatsApp: nothing for you to do. We connect your number from our side, usually within a day or two. We will never ask you for a WhatsApp password or token."}
+      </p>
     </div>
   );
 }

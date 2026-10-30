@@ -23,6 +23,7 @@ app/page.tsx                  reads ?token, hands off to Gate
 app/components/Gate.tsx       validates the token, then the wizard or a dead-end screen
 app/components/Wizard.tsx     step machine, progress, autosave, error surface
 app/components/steps/*.tsx    one thin component per question screen
+app/components/Preview.tsx    live miniature of the booking site, shown beside the questions
 app/lib/api.ts                supabase client and callWizard()
 app/lib/steps.ts              step definitions and per-step validation
 app/lib/onboarding.ts         shared types, timezones, slot-count preview

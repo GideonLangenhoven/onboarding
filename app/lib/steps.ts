@@ -43,23 +43,16 @@ export const SECTION_KEYS: Record<Exclude<Section, "tours">, string[]> = {
 
 export type StepId =
   | "welcome"
-  | "identity-name"
-  | "identity-place"
-  | "identity-locale"
-  | "identity-contact"
-  | "branding-logo"
-  | "branding-colors"
-  | "branding-hero"
-  | "ops-meeting"
-  | "ops-bring"
-  | "ops-words"
+  | "business"
+  | "location"
+  | "look"
+  | "headline"
+  | "meeting"
+  | "guests"
   | "refunds"
   | "tours"
-  | "faqs"
-  | "persona"
-  | "whatsapp"
-  | "yoco"
-  | "golive"
+  | "assistant"
+  | "review"
   | "finish";
 
 export type Step = {
@@ -79,136 +72,100 @@ export const STEPS: Step[] = [
   {
     id: "welcome",
     section: null,
-    chapter: "Start",
-    title: "Welcome",
+    chapter: "Welcome",
+    title: "Let's get you taking bookings",
   },
   {
-    id: "identity-name",
+    id: "business",
     section: "identity",
     chapter: "Your business",
-    title: "What is your business called?",
-    intro: "This is the name guests will see on your booking site and on their confirmations.",
-    validate: (v) => (v.business_name?.trim() ? null : "Please enter your business name."),
+    title: "Tell us about your business",
+    intro: "This is the name guests see on your booking site and on every confirmation.",
+    validate: (v) =>
+      !v.business_name?.trim()
+        ? "Please enter your business name."
+        : !email(v.operator_email || "")
+          ? "Please enter a valid email address for your bookings."
+          : v.notification_email?.trim() && !email(v.notification_email)
+            ? "The booking alerts address does not look right."
+            : null,
   },
   {
-    id: "identity-place",
+    id: "location",
     section: "identity",
     chapter: "Your business",
     title: "Where are you based?",
-    intro: "We can look you up on Google and fill this in for you.",
-  },
-  {
-    id: "identity-locale",
-    section: "identity",
-    chapter: "Your business",
-    title: "Your time zone and currency",
-    intro: "Everything, from booking times to reminder messages, follows your local time.",
+    intro: "Find yourself on Google and we fill in your address and link your reviews.",
     validate: (v) =>
       isValidTimezone(v.timezone || "") ? null : "Please choose the time zone you operate in.",
   },
   {
-    id: "identity-contact",
-    section: "identity",
-    chapter: "Your business",
-    title: "Where should we send your bookings?",
-    intro: "Every new booking lands in this inbox.",
-    validate: (v) =>
-      email(v.operator_email || "") ? null : "Please enter a valid email address.",
-  },
-  {
-    id: "branding-logo",
+    id: "look",
     section: "branding",
-    chapter: "Your look",
-    title: "Add your logo",
-    intro: "Upload a logo, or skip this and add one later.",
+    chapter: "Your brand",
+    title: "Make it look like you",
+    intro: "Add your logo and colours. Watch the preview update as you go.",
   },
   {
-    id: "branding-colors",
+    id: "headline",
     section: "branding",
-    chapter: "Your look",
-    title: "Pick your colours",
-    intro: "If you already have a website we can borrow the colours from it.",
+    chapter: "Your brand",
+    title: "Write your headline",
+    intro: "The first thing guests read on your booking site.",
   },
   {
-    id: "branding-hero",
-    section: "branding",
-    chapter: "Your look",
-    title: "The first thing guests read",
-    intro: "This is the headline across the top of your booking site.",
-  },
-  {
-    id: "ops-meeting",
+    id: "meeting",
     section: "operations",
     chapter: "On the day",
     title: "Where do guests meet you?",
     intro: "This goes into every confirmation and reminder, so be specific.",
   },
   {
-    id: "ops-bring",
+    id: "guests",
     section: "operations",
     chapter: "On the day",
-    title: "What should guests bring and wear?",
-  },
-  {
-    id: "ops-words",
-    section: "operations",
-    chapter: "On the day",
-    title: "How do you describe what you do?",
-    intro: "We use these words in messages, for example \"your paddle\" or \"you paddled\".",
+    title: "Help guests arrive prepared",
   },
   {
     id: "refunds",
     section: "refunds",
-    chapter: "Money",
+    chapter: "Policies",
     title: "Your cancellation policy",
-    intro: "Set how much a guest gets back depending on how early they cancel.",
+    intro: "How much a guest gets back depending on how early they cancel. Most operators keep our default.",
   },
   {
     id: "tours",
     section: "tours",
     chapter: "Your tours",
     title: "What do you sell?",
-    intro: "Add each tour with its price and the times you run it.",
+    intro: "Add each tour with its price and the times you run it. You can add more later.",
     validate: () => null,
   },
   {
-    id: "faqs",
+    id: "assistant",
     section: "faqs",
-    chapter: "Your assistant",
-    title: "Questions guests always ask",
-    intro: "Your AI assistant answers these automatically, day and night.",
+    chapter: "AI assistant",
+    title: "Teach your assistant",
+    intro: "Your assistant answers guests on your site and WhatsApp, day and night.",
   },
   {
-    id: "persona",
-    section: "faqs",
-    chapter: "Your assistant",
-    title: "How should your assistant sound?",
-  },
-  {
-    id: "whatsapp",
-    section: null,
-    chapter: "Connections",
-    title: "WhatsApp",
-  },
-  {
-    id: "yoco",
-    section: null,
-    chapter: "Connections",
-    title: "Taking payments",
-  },
-  {
-    id: "golive",
+    id: "review",
     section: null,
     chapter: "Go live",
-    title: "Ready to go live",
+    title: "Check everything, then go live",
+    intro: "Your booking site opens the moment you press the button. You can change anything later.",
   },
   {
     id: "finish",
     section: null,
     chapter: "Go live",
-    title: "You are live",
+    title: "You're live",
   },
 ];
+
+/** Screens after this point run once the tenant is trading, so nothing before it may be edited. */
+export const REVIEW_INDEX = STEPS.findIndex((s) => s.id === "review");
+export const FINISH_INDEX = STEPS.length - 1;
 
 export const CHAPTERS = [...new Set(STEPS.map((s) => s.chapter))];
 
@@ -219,6 +176,7 @@ export const CHAPTERS = [...new Set(STEPS.map((s) => s.chapter))];
  */
 export function stepIndexForSection(section: string | null | undefined) {
   if (!section) return 0;
+  if (section === "go-live" || section === "done") return FINISH_INDEX;
   const index = STEPS.findIndex((step) => step.section === section);
   return index === -1 ? 0 : index;
 }

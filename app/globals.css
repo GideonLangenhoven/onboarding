@@ -2,36 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Colours are raw channels so Tailwind opacity modifiers such as bg-accent/5 work. */
+/* Brand tokens match bookingtours.co.za. Raw channels so bg-accent/10 etc. work. */
 :root {
   color-scheme: light;
-  --bg: 245 239 228; /* #f5efe4 */
-  --ink: 19 40 51; /* #132833 */
-  --muted: 91 106 113; /* #5b6a71 */
-  --surface: 255 250 242; /* #fffaf2 */
-  --accent: 24 95 117; /* #185f75 */
-  --accent-dark: 13 67 86; /* #0d4356 */
-  --warm: 202 108 47; /* #ca6c2f */
-  --danger: 166 63 43; /* #a63f2b */
-  --line: rgba(19, 40, 51, 0.14);
-  --radius-xl: 28px;
-  --radius-lg: 22px;
+  --bg: 251 251 249; /* #fbfbf9 */
+  --ink: 19 21 18; /* #131512 */
+  --muted: 92 99 94; /* #5c635e */
+  --surface: 255 255 255;
+  --accent: 18 94 64; /* #125e40 */
+  --accent-dark: 14 74 51; /* #0e4a33 */
+  --mint: 216 238 226; /* #d8eee2 */
+  --warm: 217 130 47; /* #d9822f */
+  --danger: 178 58 38; /* #b23a26 */
+  --line: rgba(19, 21, 18, 0.1);
+  --line-strong: rgba(19, 21, 18, 0.18);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body {
-  background:
-    radial-gradient(circle at top left, rgba(202, 108, 47, 0.16), transparent 36%),
-    radial-gradient(circle at top right, rgba(24, 95, 117, 0.14), transparent 28%),
-    linear-gradient(180deg, #fff8ef 0%, rgb(var(--bg)) 100%);
-  background-attachment: fixed;
-  color: var(--ink);
-  font-family: var(--font-sans), sans-serif;
+  background: rgb(var(--bg));
+  color: rgb(var(--ink));
+  font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
 }
 
 @layer components {
   .field {
-    @apply block text-sm font-medium text-ink mb-1.5;
+    @apply mb-1.5 block text-sm font-medium text-ink;
   }
 
   .hint {
@@ -39,32 +37,61 @@ body {
   }
 
   .input {
-    @apply w-full rounded-[14px] border border-line bg-white/90 px-4 py-3 text-ink
-      placeholder:text-muted/70 outline-none transition
-      focus:border-accent focus:ring-2 focus:ring-accent/25;
+    @apply w-full rounded-[10px] border border-line-strong bg-white px-3.5 py-2.5 text-ink shadow-[0_1px_0_rgba(19,21,18,0.03)]
+      outline-none transition placeholder:text-muted/60
+      hover:border-ink/30 focus:border-accent focus:ring-4 focus:ring-accent/15;
   }
 
   .card {
-    @apply rounded-2xl border border-line bg-surface/90 p-6 shadow-[0_24px_60px_rgba(19,40,51,0.08)];
+    @apply rounded-2xl border border-line bg-white p-5 sm:p-8 shadow-[0_1px_2px_rgba(19,21,18,0.04),0_12px_32px_-12px_rgba(19,21,18,0.08)];
+  }
+
+  .panel {
+    @apply rounded-xl border border-line bg-bg/60 p-4;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold
-      transition disabled:opacity-50 disabled:cursor-not-allowed
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-5 py-2.5 text-[15px] font-semibold
+      transition duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50
+      focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/25;
   }
 
   .btn-primary {
-    @apply btn bg-accent text-white hover:bg-accent-dark;
+    @apply btn bg-accent text-white shadow-[0_1px_2px_rgba(14,74,51,0.3),inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-accent-dark;
   }
 
   .btn-ghost {
-    @apply btn border border-line bg-white/70 text-ink hover:bg-white;
+    @apply btn border border-line-strong bg-white text-ink hover:bg-bg;
   }
 
   .btn-small {
-    @apply rounded-full border border-line bg-white/70 px-3 py-1.5 text-sm text-ink
-      transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+    @apply inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-white px-3 py-1.5 text-sm text-ink
+      transition hover:bg-bg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/20;
+  }
+
+  .chip {
+    @apply btn-small aria-pressed:border-accent aria-pressed:bg-accent aria-pressed:text-white;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent;
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.35s var(--ease) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
   }
 }
 

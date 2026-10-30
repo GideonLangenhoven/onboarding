@@ -81,6 +81,35 @@ export type Credentials = {
 
 export type Readiness = Record<string, boolean | string | number | null>;
 
+const ADMIN_DOMAIN = "admin.bookingtours.co.za";
+
+/** Mirrors adminOriginFor in the onboarding-wizard edge function. */
+export function adminUrlFor(subdomain?: string) {
+  return subdomain ? `https://${subdomain}.${ADMIN_DOMAIN}` : `https://${ADMIN_DOMAIN}`;
+}
+
+export function money(currency: string | undefined, amount: string | number) {
+  const value = Number(amount);
+  if (!(value > 0)) return "";
+  try {
+    return new Intl.NumberFormat("en-ZA", {
+      style: "currency",
+      currency: currency || "ZAR",
+      maximumFractionDigits: value % 1 ? 2 : 0,
+    }).format(value);
+  } catch {
+    return `${currency || "ZAR"} ${value}`;
+  }
+}
+
+export function duration(minutes: string | number) {
+  const m = Number(minutes) || 0;
+  if (m <= 0) return "";
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  return [h ? `${h}h` : "", rest ? `${rest}m` : ""].filter(Boolean).join(" ");
+}
+
 /** Everything a step screen is given by the wizard. */
 export type StepContext = {
   token: string;
@@ -91,8 +120,14 @@ export type StepContext = {
   creds: Credentials;
   refresh: () => Promise<void>;
   bookingSiteUrl: string;
+  /** The tenant's own admin console, {subdomain}.admin.bookingtours.co.za. */
+  adminUrl: string;
   businessName: string;
   goNext: () => void;
+  goTo: (stepId: string) => void;
+  /** Called by the review screen once go-live has switched the tenant on. */
+  markLive: (readiness: Readiness) => void;
+  readiness: Readiness | null;
 };
 
 export function emptyRange(): ScheduleRange {

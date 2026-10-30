@@ -31,7 +31,7 @@ export async function callWizard<T>(
   payload: Record<string, unknown> = {},
 ): Promise<T & WizardResponse> {
   const { data, error } = await getSupabase().functions.invoke("onboarding-wizard", {
-    body: { action, token, ...payload },
+    body: { ...payload, action, token },
   });
 
   if (error) {

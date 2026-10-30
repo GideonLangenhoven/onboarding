@@ -9,7 +9,7 @@ import {
   type StepContext,
 } from "../../lib/onboarding";
 
-export function IdentityName({ values, set }: StepContext) {
+export function Business({ values, set }: StepContext) {
   return (
     <div className="space-y-5">
       <TextField
@@ -19,21 +19,41 @@ export function IdentityName({ values, set }: StepContext) {
         onChange={(e) => set({ business_name: e.target.value })}
         autoComplete="organization"
         required
+        autoFocus
       />
       <TextField
         id="business_tagline"
-        label="A short line about what you do"
-        hint="Optional. For example, sea kayaking with the penguins of Simon's Town."
+        label="One line about what you do"
+        hint="Optional. For example: Sea kayaking with the penguins of Simon's Town."
         value={values.business_tagline || ""}
         onChange={(e) => set({ business_tagline: e.target.value })}
       />
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField
+          id="name"
+          label="Your name"
+          value={values.name || ""}
+          onChange={(e) => set({ name: e.target.value })}
+          autoComplete="name"
+        />
+        <TextField
+          id="operator_email"
+          label="Bookings email"
+          hint="Every new booking lands here."
+          type="email"
+          autoComplete="email"
+          value={values.operator_email || ""}
+          onChange={(e) => set({ operator_email: e.target.value })}
+          required
+        />
+      </div>
       <TextField
-        id="name"
-        label="Your name"
-        hint="So we know who to greet when we email you."
-        value={values.name || ""}
-        onChange={(e) => set({ name: e.target.value })}
-        autoComplete="name"
+        id="notification_email"
+        label="Also send booking alerts to"
+        hint="Optional. Leave blank to use your bookings email."
+        type="email"
+        value={values.notification_email || ""}
+        onChange={(e) => set({ notification_email: e.target.value })}
       />
     </div>
   );
@@ -43,17 +63,15 @@ type Candidate = {
   place_id: string;
   name: string;
   address: string;
-  phone?: string;
-  website?: string;
   maps_uri?: string;
-  hours?: string[];
 };
 
-export function IdentityPlace({ token, values, set }: StepContext) {
+export function Location({ token, values, set }: StepContext) {
   const [query, setQuery] = useState(values.business_name || "");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [searching, setSearching] = useState(false);
   const [message, setMessage] = useState("");
+  const linked = Boolean(values.google_place_id);
 
   async function search() {
     if (!query.trim()) return;
@@ -64,12 +82,10 @@ export function IdentityPlace({ token, values, set }: StepContext) {
         query: query.trim(),
       });
       setCandidates(data.candidates || []);
-      if (!data.candidates?.length) setMessage("We could not find that. Please type your address in below.");
-    } catch (error) {
+      if (!data.candidates?.length) setMessage("No match on Google. Type your address below instead.");
+    } catch {
       setCandidates([]);
-      setMessage(
-        `${(error as Error).message} You can type your address in below instead.`,
-      );
+      setMessage("Google search isn't available right now. Type your address below instead.");
     } finally {
       setSearching(false);
     }
@@ -82,19 +98,19 @@ export function IdentityPlace({ token, values, set }: StepContext) {
       social_google_reviews: candidate.maps_uri || "",
     });
     setCandidates([]);
-    setMessage(`Using ${candidate.name}. Your Google reviews will show on your booking site.`);
+    setMessage("");
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
         <label className="field" htmlFor="places-query">
-          Search for your business on Google
+          Find your business on Google
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           <input
             id="places-query"
-            className="input flex-1 min-w-[14rem]"
+            className="input flex-1"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -105,30 +121,35 @@ export function IdentityPlace({ token, values, set }: StepContext) {
             }}
             placeholder="Business name and town"
           />
-          <button type="button" className="btn-ghost" onClick={() => void search()} disabled={searching}>
+          <button type="button" className="btn-ghost shrink-0" onClick={() => void search()} disabled={searching}>
             {searching ? "Searching" : "Search"}
           </button>
         </div>
+        {message && <p className="hint mt-2">{message}</p>}
       </div>
 
       {candidates.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="space-y-2" aria-label="Matches on Google">
           {candidates.map((candidate) => (
             <li key={candidate.place_id}>
               <button
                 type="button"
                 onClick={() => choose(candidate)}
-                className="w-full rounded-xl border border-line bg-white/80 p-4 text-left transition hover:border-accent hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="w-full rounded-xl border border-line bg-white p-3.5 text-left transition hover:border-accent hover:bg-mint/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/20"
               >
-                <span className="block font-semibold">{candidate.name}</span>
-                <span className="hint">{candidate.address}</span>
+                <span className="block text-sm font-semibold">{candidate.name}</span>
+                <span className="hint text-[13px]">{candidate.address}</span>
               </button>
             </li>
           ))}
         </ul>
       )}
 
-      {message && <p className="hint">{message}</p>}
+      {linked && (
+        <p className="flex items-center gap-2 rounded-lg bg-mint/60 px-3.5 py-2.5 text-sm text-accent-dark">
+          <span aria-hidden="true">★</span> Linked to Google. Your reviews will show on your booking site.
+        </p>
+      )}
 
       <TextField
         id="business_address"
@@ -138,73 +159,55 @@ export function IdentityPlace({ token, values, set }: StepContext) {
         onChange={(e) => set({ business_address: e.target.value })}
         autoComplete="street-address"
       />
-    </div>
-  );
-}
 
-export function IdentityLocale({ values, set }: StepContext) {
-  return (
-    <div className="space-y-5">
-      <div>
-        <label className="field" htmlFor="timezone">
-          Time zone
-        </label>
-        <select
-          id="timezone"
-          className="input"
-          value={values.timezone || ""}
-          onChange={(e) => set({ timezone: e.target.value })}
-        >
-          <option value="">Choose your time zone</option>
-          {TIMEZONE_OPTIONS.map((zone) => (
-            <option key={zone} value={zone}>
-              {zone.replace(/_/g, " ")}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="field" htmlFor="currency">
-          Currency
-        </label>
-        <select
-          id="currency"
-          className="input"
-          value={values.currency || "ZAR"}
-          onChange={(e) => set({ currency: e.target.value })}
-        >
-          {CURRENCY_OPTIONS.map((code) => (
-            <option key={code} value={code}>
-              {code}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-}
-
-export function IdentityContact({ values, set }: StepContext) {
-  return (
-    <div className="space-y-5">
-      <TextField
-        id="operator_email"
-        label="Your main email address"
-        type="email"
-        autoComplete="email"
-        value={values.operator_email || ""}
-        onChange={(e) => set({ operator_email: e.target.value })}
-        required
-      />
-      <TextField
-        id="notification_email"
-        label="Send booking alerts to"
-        hint="Leave this blank to use your main email address."
-        type="email"
-        value={values.notification_email || ""}
-        onChange={(e) => set({ notification_email: e.target.value })}
-      />
+      <details className="group rounded-xl border border-line" open={!values.timezone}>
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm">
+          <span>
+            <span className="font-medium">Time zone and currency</span>
+            <span className="hint ml-2">
+              {(values.timezone || "Not set").replace(/_/g, " ")} · {values.currency || "ZAR"}
+            </span>
+          </span>
+          <span className="text-muted transition group-open:rotate-180" aria-hidden="true">⌄</span>
+        </summary>
+        <div className="grid gap-4 border-t border-line p-4 sm:grid-cols-2">
+          <div>
+            <label className="field" htmlFor="timezone">
+              Time zone
+            </label>
+            <select
+              id="timezone"
+              className="input"
+              value={values.timezone || ""}
+              onChange={(e) => set({ timezone: e.target.value })}
+            >
+              <option value="">Choose your time zone</option>
+              {TIMEZONE_OPTIONS.map((zone) => (
+                <option key={zone} value={zone}>
+                  {zone.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="field" htmlFor="currency">
+              Currency
+            </label>
+            <select
+              id="currency"
+              className="input"
+              value={values.currency || "ZAR"}
+              onChange={(e) => set({ currency: e.target.value })}
+            >
+              {CURRENCY_OPTIONS.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

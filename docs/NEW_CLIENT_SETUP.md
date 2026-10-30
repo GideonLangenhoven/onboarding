@@ -23,21 +23,24 @@ find yourself adding one, something has gone wrong. All privileged work happens 
 1. A super admin generates an invite token in the platform admin. That creates a skeleton tenant and
    returns a link of the form `https://onboarding.bookingtours.co.za?token=<uuid>`.
 2. Send the client that link and get them on a call.
-3. The client answers roughly nineteen short screens. Every answer autosaves onto the real tenant as
-   they advance, so a refresh or a dropped call resumes where they left off.
-4. The client pastes their own Yoco secret key on the payments screen. The edge function encrypts it
-   and registers the payment webhook. A `pending` webhook is not a failure and does not block them.
-5. WhatsApp is display only. The client is never asked for a token. The platform owner connects the
+3. The client answers twelve short screens, with a live preview of their booking site beside them.
+   Every answer autosaves onto the real tenant as they advance, so a refresh or a dropped call
+   resumes where they left off.
+4. The review screen summarises everything with an Edit link per section. Pressing Go live turns the
+   tenant on and emails the client a password link for `{subdomain}.admin.bookingtours.co.za`.
+   After that the wizard is read-only, because the server refuses edits to a live business.
+5. The finish screen links to the booking site and the client's own dashboard, and lists what is
+   left: set a password, connect Yoco in dashboard Settings (the wizard no longer takes the key,
+   the edge function refuses it), and make a paid test booking. The wizard polls for that booking
+   and closes the invite once it lands.
+6. WhatsApp is display only. The client is never asked for a token. The platform owner connects the
    number separately.
-6. The go-live screen turns the tenant on and reports what is ready.
-7. The finish screen asks the client to make a real, paid test booking while still on the call. The
-   wizard polls for it and celebrates when it lands, then marks the setup complete.
 
 ## What the agent should watch for on the call
 
 - The address screen can look the business up on Google. If that comes back empty or unavailable,
   the client types their address in by hand and nothing is lost.
-- The colours screen can read an existing website. Same story, it degrades to picking colours.
+- The brand screen can read an existing website. Same story, it degrades to picking colours.
 - The tours screen shows a live count of the departures about to be created. Sanity check it with
   the client before pressing Next, especially the end date.
 - A tour that already has departures starts with no new date ranges, so pressing Next again does not
