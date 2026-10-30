@@ -22,7 +22,7 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-12">
       <div className="mb-8 flex items-center gap-2.5">
         <Mark />
-        <span className="font-semibold">BookingTours</span>
+        <span className="font-semibold">Booking·Tours</span>
       </div>
       <div className="card fade-in w-full max-w-md">{children}</div>
       <p className="mt-6 text-center text-sm text-muted">

@@ -396,7 +396,7 @@ export default function Wizard({ token, session }: { token: string; session: Ses
       <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Mark />
-          <span className="hidden text-sm font-semibold sm:inline">BookingTours</span>
+          <span className="hidden text-sm font-semibold sm:inline">Booking·Tours</span>
           <span className="hidden text-line-strong sm:inline" aria-hidden="true">/</span>
           <span className="truncate text-sm text-muted">Setting up {businessName}</span>
           <span
