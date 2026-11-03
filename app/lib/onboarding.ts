@@ -62,6 +62,8 @@ export type TourDraft = {
   duration_minutes: string;
   default_capacity: string;
   description: string;
+  /** Blank means the business meeting point. */
+  meeting_point: string;
   ranges: ScheduleRange[];
   slot_count?: number;
 };
@@ -77,6 +79,8 @@ export type Credentials = {
   yoco_configured?: boolean;
   yoco_webhook_status?: string;
   wa_status?: "connected" | "pending";
+  /** The Meta app and Embedded Signup configuration, when the edge function has them. */
+  wa_signup?: { app_id: string; config_id: string } | null;
 };
 
 export type Readiness = Record<string, boolean | string | number | null>;
@@ -141,6 +145,7 @@ export function emptyTour(): TourDraft {
     duration_minutes: "120",
     default_capacity: "10",
     description: "",
+    meeting_point: "",
     ranges: [emptyRange()],
   };
 }

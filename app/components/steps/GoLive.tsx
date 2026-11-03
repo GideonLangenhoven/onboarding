@@ -31,11 +31,14 @@ function Row({
   );
 }
 
-export function Review({ token, values, tours, businessName, bookingSiteUrl, goTo, markLive }: StepContext) {
+export function Review({ token, values, tours, creds, businessName, bookingSiteUrl, goTo, markLive }: StepContext) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const named = tours.filter((t) => t.name.trim());
+  // Guests know where to go once there is a main meeting point, or every tour has its own.
+  const everyTourMeets = named.length > 0 && named.every((t) => t.meeting_point.trim());
+  const meetingSet = Boolean(values.meeting_point || values.meeting_point_address || values.directions) || everyTourMeets;
   const departures = named.reduce((sum, t) => sum + (t.slot_count || 0) + countSlots(t.ranges), 0);
   const faqs = readFaqs(values.faq_json).filter((f) => f.question.trim() && f.answer.trim());
   const hasLogo = /^(https?:|data:)/.test(values.logo_url || "");
@@ -81,8 +84,8 @@ export function Review({ token, values, tours, businessName, bookingSiteUrl, goT
         />
         <Row
           label="Meeting point"
-          value={values.meeting_point || <span className="text-muted">Not set</span>}
-          warn={values.meeting_point ? undefined : "Guests won't know where to go. Worth adding."}
+          value={values.meeting_point || values.meeting_point_address || (everyTourMeets ? "Set on each tour" : <span className="text-muted">Not set</span>)}
+          warn={meetingSet ? undefined : "Guests won't know where to go. Worth adding."}
           onEdit={() => goTo("meeting")}
         />
         <Row
@@ -121,6 +124,12 @@ export function Review({ token, values, tours, businessName, bookingSiteUrl, goT
           label="AI assistant"
           value={`${faqs.length} answered question${faqs.length === 1 ? "" : "s"}`}
           onEdit={() => goTo("assistant")}
+        />
+        <Row
+          label="WhatsApp"
+          value={creds.wa_status === "connected" ? "Connected" : <span className="text-muted">Not connected</span>}
+          warn={creds.wa_status === "connected" ? undefined : "Guests can't message you on WhatsApp yet. Connect it now, or your BookingTours contact helps you later."}
+          onEdit={() => goTo("whatsapp")}
         />
       </ul>
 
@@ -301,7 +310,7 @@ export function Finish({ token, bookingSiteUrl, adminUrl, businessName, values, 
       <p className="rounded-lg bg-bg px-4 py-3 text-sm text-muted">
         {waConnected
           ? "WhatsApp is connected. Your assistant answers guests there too."
-          : "WhatsApp: nothing for you to do. We connect your number from our side, usually within a day or two. We will never ask you for a WhatsApp password or token."}
+          : "WhatsApp isn't connected yet. Your BookingTours contact will connect it with you. There is nothing else to do today."}
       </p>
     </div>
   );

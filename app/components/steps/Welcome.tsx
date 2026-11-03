@@ -8,6 +8,7 @@ const CHAPTERS = [
   ["On the day", "Meeting point and what to bring"],
   ["Your tours", "Prices, times and seats"],
   ["AI assistant", "The questions guests always ask"],
+  ["WhatsApp", "Connect the number guests message"],
   ["Go live", "Your booking site and dashboard switch on"],
 ] as const;
 

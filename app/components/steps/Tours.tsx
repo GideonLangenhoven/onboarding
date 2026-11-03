@@ -308,6 +308,24 @@ export function Tours({ tours, setTours, values }: StepContext) {
               />
             </div>
 
+            <div>
+              <label className="field" htmlFor={`tour-${index}-meeting-point`}>
+                Meeting point <span className="font-normal text-muted">(optional)</span>
+              </label>
+              <input
+                id={`tour-${index}-meeting-point`}
+                className="input"
+                maxLength={200}
+                aria-describedby={`tour-${index}-meeting-point-hint`}
+                placeholder={values.meeting_point || "Lower Cableway Station, Tafelberg Road"}
+                value={tour.meeting_point}
+                onChange={(e) => updateTour(index, { meeting_point: e.target.value })}
+              />
+              <p className="hint mt-1.5" id={`tour-${index}-meeting-point-hint`}>
+                Only if this tour starts somewhere else. Blank uses your main meeting point.
+              </p>
+            </div>
+
             <div className="space-y-3">
               <p className="field mb-0">When do you run it?</p>
               {tour.ranges.map((range, rangeIndex) => (

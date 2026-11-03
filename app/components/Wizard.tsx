@@ -27,6 +27,7 @@ import { Guests, Meeting } from "./steps/Operations";
 import { Refunds } from "./steps/Refunds";
 import { Tours } from "./steps/Tours";
 import { Assistant } from "./steps/Faqs";
+import { WhatsApp } from "./steps/WhatsApp";
 import { Welcome } from "./steps/Welcome";
 import { Finish, Review } from "./steps/GoLive";
 import Preview from "./Preview";
@@ -43,6 +44,7 @@ const SCREENS: Record<string, ComponentType<StepContext>> = {
   refunds: Refunds,
   tours: Tours,
   assistant: Assistant,
+  whatsapp: WhatsApp,
   review: Review,
   finish: Finish,
 };
@@ -86,6 +88,7 @@ function toTours(rows: Record<string, unknown>[]): TourDraft[] {
       duration_minutes: String(row.duration_minutes ?? "120"),
       default_capacity: String(row.default_capacity ?? "10"),
       description: String(row.description ?? ""),
+      meeting_point: String(row.meeting_point ?? ""),
       slot_count: slotCount,
       // A tour that already has departures starts with no new dates, so pressing
       // Next again does not pile more slots onto the calendar.
@@ -114,6 +117,8 @@ export default function Wizard({ token, session }: { token: string; session: Ses
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState("");
   const [note, setNote] = useState("");
+  const [parked, setParked] = useState<{ email: string; admin_url: string; admin_email_sent: boolean } | null>(null);
+  const [parking, setParking] = useState(false);
 
   const dirty = useRef(false);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
@@ -210,6 +215,7 @@ export default function Wizard({ token, session }: { token: string; session: Ses
             duration_minutes: Number(tour.duration_minutes) || 0,
             default_capacity: Number(tour.default_capacity) || 0,
             description: tour.description,
+            meeting_point: tour.meeting_point.trim(),
             sort_order: order,
             ranges: tour.ranges.filter(
               (range) =>
@@ -349,6 +355,20 @@ export default function Wizard({ token, session }: { token: string; session: Ses
     move(to);
   }
 
+  /** Busy client: save what's here, get the dashboard login, and finish there later. */
+  async function finishLater() {
+    setParking(true);
+    setError("");
+    try {
+      await save();
+      setParked(await callWizard<{ email: string; admin_url: string; admin_email_sent: boolean }>("finish-later", token));
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setParking(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-dvh items-center justify-center" role="status">
@@ -388,6 +408,7 @@ export default function Wizard({ token, session }: { token: string; session: Ses
   const minutesLeft = Math.max(1, Math.round((REVIEW_INDEX - index) * 1.5));
   const showPreview = index > 0 && index < REVIEW_INDEX;
   const canGoBack = index > 0 && !live;
+  const canFinishLater = index > 0 && index <= REVIEW_INDEX && !live;
   const status =
     saveState === "saving" ? "Saving" : note || (saveState === "saved" ? "All changes saved" : "");
 
@@ -465,6 +486,26 @@ export default function Wizard({ token, session }: { token: string; session: Ses
         </nav>
 
         <main className="min-w-0">
+          {parked ? (
+            <div className="card fade-in">
+              <p className="eyebrow">Saved for later</p>
+              <h1 className="mt-2 font-display text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2.1rem]">
+                Finish in your dashboard
+              </h1>
+              <p className="mt-3 max-w-xl text-[15px] text-muted">
+                Everything you&apos;ve entered is saved.{" "}
+                {parked.admin_email_sent
+                  ? `We've emailed ${parked.email} a link to set your dashboard password. It works for 48 hours.`
+                  : `Sign in with ${parked.email}. Can't find your password link? Ask your BookingTours contact to resend it.`}{" "}
+                Your dashboard shows what&apos;s left and a Go live button for when you&apos;re ready.
+              </p>
+              {parked.admin_url && (
+                <a href={parked.admin_url} target="_blank" rel="noreferrer" className="btn-primary mt-6 inline-flex">
+                  Open my dashboard
+                </a>
+              )}
+            </div>
+          ) : (
           <form
             key={step.id}
             className="fade-in"
@@ -514,6 +555,11 @@ export default function Wizard({ token, session }: { token: string; session: Ses
                     Back
                   </button>
                 )}
+                {canFinishLater && (
+                  <button type="button" className="btn-ghost" disabled={parking} onClick={() => void finishLater()}>
+                    {parking ? "Saving" : "Finish later in my dashboard"}
+                  </button>
+                )}
                 {!OWN_BUTTON.has(step.id) && (
                   <button type="submit" className="btn-primary ml-auto min-w-[9rem]" disabled={saveState === "saving" && step.section === "tours"}>
                     {saveState === "saving" && step.section === "tours" ? "Saving tours" : "Continue"}
@@ -522,6 +568,7 @@ export default function Wizard({ token, session }: { token: string; session: Ses
               </div>
             )}
           </form>
+          )}
         </main>
 
         {showPreview && (

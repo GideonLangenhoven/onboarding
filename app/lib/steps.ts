@@ -52,6 +52,7 @@ export type StepId =
   | "refunds"
   | "tours"
   | "assistant"
+  | "whatsapp"
   | "review"
   | "finish";
 
@@ -118,7 +119,7 @@ export const STEPS: Step[] = [
     section: "operations",
     chapter: "On the day",
     title: "Where do guests meet you?",
-    intro: "This goes into every confirmation and reminder, so be specific.",
+    intro: "Your main meeting point, used for every tour unless you give a tour its own. It goes into every confirmation and reminder, so be specific.",
   },
   {
     id: "guests",
@@ -147,6 +148,14 @@ export const STEPS: Step[] = [
     chapter: "AI assistant",
     title: "Teach your assistant",
     intro: "Your assistant answers guests on your site and WhatsApp, day and night.",
+  },
+  {
+    id: "whatsapp",
+    section: null,
+    chapter: "WhatsApp",
+    title: "Connect your WhatsApp number",
+    intro:
+      "Guests message this number and your assistant replies, day and night. It takes about five minutes with your phone next to you. No phone with you? Press Continue and come back to this step before you go live.",
   },
   {
     id: "review",
